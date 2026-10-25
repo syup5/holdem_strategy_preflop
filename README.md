@@ -1,0 +1,48 @@
+# 홀덤 프리플랍 드릴
+
+**플레이: https://syup5.github.io/holdem-preflop-drill/**
+
+랜덤으로 생성되는 토너먼트 프리플랍 상황에서 폴드·콜·오픈 레이즈(사이즈 포함)·올인을 고르면, 전략서 이론과 13×13 레인지 차트, EV 계산으로 해설해 주는 연습 게임입니다. 설치 없이 브라우저에서 바로 실행됩니다.
+
+## 기능
+
+- **테이블 시각화**: 3–9명 테이블, 좌석별 행동 순서 번호·포지션·스택(BB/칩)·액션 상태, 딜러 버튼, 베팅 칩, 팟
+- **스택 정보**: 내 스택, 유효 스택, M-비율(해링턴 존), 테이블 총 칩·평균·내 비중·순위, 콜 금액
+- **상황 4종**: 오픈 기회(폴드된 팟) · 레이즈 상대(콜/3벳/올인) · 올인 상대(콜/폴드) · 림퍼 상대(아이소 레이즈)
+- **채점**: 최선 / 허용 / 실수 3단계, 액션과 레이즈 사이즈를 따로 판정
+- **설정**: 인원, 스택 깊이(숏/미들/딥), BB 앤티 유무, 상황 유형, 출제 난이도. 성적은 브라우저(localStorage)에 저장
+- **단축키**: `F` 폴드 · `C` 콜/체크 · `1–4` 레이즈 · `A` 올인 · `Space` 다음
+
+## 전략 근거
+
+- **딥 스택(25BB 초과)**: 포지션별 오픈·디펜스 레인지는 100BB 기준 GTO 솔버 결과를 단순화한 근사 차트입니다(경계 핸드는 두 선택 모두 허용).
+- **숏 스택**: 169×169 프리플랍 올인 에퀴티 행렬(매치업당 약 24,000회 몬테카를로)로 chipEV 내쉬 균형 푸시/폴드 차트를 직접 계산했습니다(동일 스택, 오버콜 무시, 카드 제거 효과 반영). 리스틸·올인 콜 판단은 같은 행렬로 실시간 EV를 계산합니다.
+- 모든 판단은 chipEV 기준입니다. 버블·파이널 테이블처럼 ICM 압력이 큰 상황에서는 더 타이트해야 합니다.
+
+## 파일
+
+| 파일 | 설명 |
+|---|---|
+| `index.html` | GitHub Pages용 단일 페이지 (빌드 결과물) |
+| `261025_233500_holdem_preflop_drill.html` | 게임 원본 (Claude Artifact 형식) |
+| `261025_232000_precompute_preflop.py` | 에퀴티 행렬·내쉬 차트 계산, 데이터 삽입, Pages 빌드 |
+| `261025_232000_preflop_data.json` | HTML에 삽입되는 데이터 (에퀴티 행렬 + 푸시 차트) |
+| `261025_232000_equity169.npy` | 169×169 에퀴티 행렬 |
+
+## 다시 빌드하기
+
+```bash
+pip install numpy eval7
+python 261025_232000_precompute_preflop.py equity   # 에퀴티 행렬 (8코어 약 4분)
+python 261025_232000_precompute_preflop.py nash     # 내쉬 푸시/폴드 차트 (약 6분)
+python 261025_232000_precompute_preflop.py inject 261025_233500_holdem_preflop_drill.html
+python 261025_232000_precompute_preflop.py pages 261025_233500_holdem_preflop_drill.html index.html
+```
+
+## 참고 문헌
+
+- Dan Harrington & Bill Robertie, *Harrington on Hold'em, Vol. II: The Endgame*, Two Plus Two, 2005 — M-비율과 존 시스템 ([링크](https://en.wikipedia.org/wiki/Harrington_on_Hold_%27em))
+- Bill Chen & Jerrod Ankenman, *The Mathematics of Poker*, ConJelCo, 2006 — 잼-오어-폴드 게임 ([링크](https://www.pokernews.com/news/2006/12/poker-book-review-mathematics-poker-3456.htm))
+- Lee Nelson, Tysen Streib & Steven Heston, *Kill Everyone*, Huntington Press, 2007 (2판 2009) — 폴드 에퀴티와 균형 기반 올인 전략 ([링크](https://huntingtonpress.com/kill-everyone/))
+- Michael Acevedo, *Modern Poker Theory*, D&B Poker, 2019 — GTO 기반 프리플랍 레인지 ([링크](https://vaski.finna.fi/Record/vaski.4218306?lng=en-gb))
+- David Sklansky & Ed Miller, *No Limit Hold 'em: Theory and Practice*, Two Plus Two, 2006 — 스택 크기 조정과 임플라이드 오즈 ([링크](https://www.pokernews.com/news/2007/04/poker-book-theory-practice-sklansky-3722.htm))

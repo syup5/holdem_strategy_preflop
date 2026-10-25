@@ -1,0 +1,1393 @@
+<meta charset="utf-8">
+<title>홀덤 프리플랍 드릴</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: broadcast-style table stage on the left, coach's ledger (situation → verdict → theory) on the right; stacks to one column on phones */
+:root{
+  --bg:#e8edea; --panel:#ffffff; --panel-2:#f3f6f4; --ink:#152019; --muted:#596963; --line:#d2dbd6;
+  --accent:#a8781f; --accent-soft:#f3e6c8; --accent-ink:#4a3307;
+  --felt:#1f5f4d; --felt-2:#123b30; --rail:#2a1b14; --rail-2:#4b3125; --on-felt:#eef6f1; --on-felt-muted:#a8c9bb;
+  --plate:#0f1a16; --plate-line:#2c3f37; --plate-ink:#eaf2ee; --plate-muted:#9db3aa;
+  --card:#fbfaf6; --card-line:#d6d1c4; --card-back:#7a2e2e; --card-back-2:#a64545;
+  --s-s:#1b1e24; --s-h:#c62f3a; --s-d:#1f63c2; --s-c:#1d8549;
+  --best:#1a9455; --best-soft:#dff3e7; --ok:#b97800; --ok-soft:#fbefd2; --bad:#c93b3b; --bad-soft:#fae0de;
+  --c-raise:#df6a33; --c-raise-mix:#f4bf9f; --c-call:#2f78bf; --c-call-mix:#a9cbea;
+  --c-jam:#8a39b8; --c-jam-mix:#d6b6ea; --c-fold:#e2e8e4; --c-fold-ink:#7a8984; --cell-ink:#ffffff; --mix-ink:#2a2320;
+  --t-call:#e8f1fa; --t-raise:#fcefe7; --t-jam:#f3eafa; --t-fold:#eef2f0;
+  --font-ui:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --font-num:"Barlow Condensed","Arial Narrow","IBM Plex Sans KR",sans-serif;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0d1311; --panel:#151e1b; --panel-2:#1b2622; --ink:#e3ebe7; --muted:#92a39c; --line:#28352f;
+  --accent:#d6a64a; --accent-soft:#3a2f17; --accent-ink:#f5e2b8;
+  --best:#3cc07b; --best-soft:#15301f; --ok:#e0a434; --ok-soft:#33280f; --bad:#ec6a64; --bad-soft:#3a1a19;
+  --c-raise:#e0743f; --c-raise-mix:#8f5131; --c-call:#3b86cf; --c-call-mix:#2f5f8f;
+  --c-jam:#9d52cc; --c-jam-mix:#64377f; --c-fold:#222c28; --c-fold-ink:#74847e; --mix-ink:#f1e9e4;
+  --t-call:#172433; --t-raise:#2d1d14; --t-jam:#251a2e; --t-fold:#1b2421;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0d1311; --panel:#151e1b; --panel-2:#1b2622; --ink:#e3ebe7; --muted:#92a39c; --line:#28352f;
+  --accent:#d6a64a; --accent-soft:#3a2f17; --accent-ink:#f5e2b8;
+  --best:#3cc07b; --best-soft:#15301f; --ok:#e0a434; --ok-soft:#33280f; --bad:#ec6a64; --bad-soft:#3a1a19;
+  --c-raise:#e0743f; --c-raise-mix:#8f5131; --c-call:#3b86cf; --c-call-mix:#2f5f8f;
+  --c-jam:#9d52cc; --c-jam-mix:#64377f; --c-fold:#222c28; --c-fold-ink:#74847e; --mix-ink:#f1e9e4;
+  --t-call:#172433; --t-raise:#2d1d14; --t-jam:#251a2e; --t-fold:#1b2421;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--font-ui);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+.wrap{max-width:1320px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 48px;display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+
+/* ---------- header ---------- */
+.topbar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+.brand{display:grid;gap:2px}
+.brand .eyebrow{font-family:var(--font-num);font-weight:600;letter-spacing:.16em;text-transform:uppercase;font-size:.8rem;color:var(--accent)}
+.brand h1{margin:0;font-size:1.55rem;line-height:1.2;font-weight:700;text-wrap:balance}
+.scores{display:flex;flex-wrap:wrap;gap:6px 22px}
+.score{display:grid;gap:0}
+.score .k{font-size:.72rem;color:var(--muted);letter-spacing:.04em}
+.score .v{font-family:var(--font-num);font-weight:600;font-size:1.6rem;line-height:1.05;font-variant-numeric:tabular-nums}
+.score .v small{font-size:.9rem;color:var(--muted);font-weight:500;margin-left:2px}
+.controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:10px 14px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
+.ctl{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted)}
+.ctl select{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:.88rem;color:var(--ink)}
+.chips-toggle{display:flex;flex-wrap:wrap;gap:6px}
+.tog{border:1px solid var(--line);background:var(--panel-2);border-radius:999px;padding:4px 11px;font-size:.82rem;color:var(--muted)}
+.tog[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.ctl-spacer{flex:1}
+.linkbtn{background:none;border:none;color:var(--muted);font-size:.82rem;text-decoration:underline;text-underline-offset:3px;padding:4px}
+.linkbtn.danger{color:var(--bad)}
+
+/* ---------- layout ---------- */
+.layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:980px){.layout{grid-template-columns:minmax(0,1fr)}}
+.stage{display:grid;gap:12px;min-width:0}
+
+/* ---------- table ---------- */
+.table-wrap{padding:34px 10px 30px;background:radial-gradient(ellipse at 50% 45%,var(--panel-2) 0%,var(--bg) 70%);border-radius:var(--r)}
+.table-box{position:relative;width:100%;aspect-ratio:1.9/1}
+@media (max-width:640px){.table-box{aspect-ratio:1/1.08}.table-wrap{padding:38px 4px 34px}}
+.rail{position:absolute;inset:4% 5%;border-radius:50%;background:radial-gradient(ellipse at 50% 30%,var(--rail-2),var(--rail) 70%);padding:2.4%;box-shadow:0 18px 40px rgba(0,0,0,.28),inset 0 2px 0 rgba(255,255,255,.08)}
+.felt{position:relative;width:100%;height:100%;border-radius:50%;background:radial-gradient(ellipse at 50% 38%,var(--felt) 0%,var(--felt-2) 78%);box-shadow:inset 0 0 0 2px rgba(255,255,255,.07),inset 0 10px 50px rgba(0,0,0,.4)}
+.felt::after{content:"";position:absolute;inset:11%;border-radius:50%;border:1px solid rgba(255,255,255,.08)}
+.pot{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%);text-align:center;color:var(--on-felt);display:grid;gap:0;z-index:1}
+.pot .lbl{font-family:var(--font-num);letter-spacing:.18em;font-size:.72rem;color:var(--on-felt-muted);text-transform:uppercase}
+.pot .amt{font-family:var(--font-num);font-weight:700;font-size:clamp(1.3rem,3.2vw,2rem);line-height:1}
+.pot .sub{font-size:.7rem;color:var(--on-felt-muted)}
+.blinds-tag{position:absolute;left:50%;top:64%;transform:translate(-50%,-50%);font-family:var(--font-num);font-size:.78rem;letter-spacing:.06em;color:var(--on-felt-muted);white-space:nowrap}
+.seat{position:absolute;transform:translate(-50%,-50%);width:clamp(64px,13%,108px);z-index:3}
+.plate{position:relative;background:var(--plate);border:1px solid var(--plate-line);border-radius:10px;padding:4px 6px 5px;color:var(--plate-ink);text-align:center;box-shadow:0 6px 14px rgba(0,0,0,.3);transition:opacity .2s}
+.plate .pos{font-family:var(--font-num);font-weight:700;font-size:.95rem;letter-spacing:.04em;line-height:1.1}
+.plate .stk{font-family:var(--font-num);font-weight:600;font-size:1.05rem;line-height:1.05;font-variant-numeric:tabular-nums}
+.plate .stk small{font-size:.7rem;color:var(--plate-muted);margin-left:1px}
+.plate .chipsline{font-family:var(--font-num);font-size:.68rem;color:var(--plate-muted);line-height:1.1;font-variant-numeric:tabular-nums}
+.plate .st{margin-top:3px;font-size:.66rem;line-height:1.3;border-radius:4px;padding:0 4px;display:inline-block;background:rgba(255,255,255,.08);color:var(--plate-muted);white-space:nowrap}
+.order{position:absolute;top:-9px;left:-9px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-num);font-weight:700;font-size:.78rem;background:var(--panel);color:var(--ink);border:1px solid var(--line);box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.seat.folded .plate{opacity:.42}
+.seat.folded .order{opacity:.6}
+.seat.hero .plate{border:2px solid var(--accent);background:linear-gradient(180deg,#22301f 0%,var(--plate) 100%);box-shadow:0 0 0 4px rgba(214,166,74,.22),0 8px 18px rgba(0,0,0,.35)}
+.seat.hero .order{background:var(--accent);color:#1b1305;border-color:var(--accent)}
+.seat.hero .st{background:var(--accent);color:#1b1305;font-weight:600}
+.seat.aggr .st{background:#e0743f;color:#fff;font-weight:600}
+.seat.jam .st{background:#9d52cc;color:#fff;font-weight:600}
+.seat.limp .st{background:#3b86cf;color:#fff;font-weight:600}
+.backs{position:absolute;left:50%;top:-14px;transform:translateX(-50%);display:flex;gap:2px;z-index:-1}
+.backs i{display:block;width:14px;height:19px;border-radius:2px;border:1px solid rgba(255,255,255,.55);background:repeating-linear-gradient(45deg,var(--card-back) 0 3px,var(--card-back-2) 3px 6px)}
+.bet{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:4px;z-index:2;color:var(--on-felt);font-family:var(--font-num);font-weight:600;font-size:.9rem;white-space:nowrap}
+.bet::before{content:"";width:13px;height:13px;border-radius:50%;background:radial-gradient(circle,#fff 0 28%,transparent 29%),#c84a3a;border:2px dashed rgba(255,255,255,.8);box-sizing:border-box}
+.bet.big::before{background:radial-gradient(circle,#fff 0 28%,transparent 29%),#6a3fb0}
+.dealer{position:absolute;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;background:#f6f1e3;color:#1d1a12;font-family:var(--font-num);font-weight:700;font-size:.8rem;display:grid;place-items:center;box-shadow:0 2px 5px rgba(0,0,0,.4);z-index:2}
+
+/* ---------- hero row ---------- */
+.hero-row{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
+.cards{display:flex;gap:8px}
+.pcard{width:58px;height:82px;border-radius:8px;background:var(--card);border:1px solid var(--card-line);box-shadow:0 4px 10px rgba(0,0,0,.15);display:grid;grid-template-rows:auto 1fr;padding:4px 6px;position:relative}
+.pcard .r{font-family:var(--font-num);font-weight:700;font-size:1.9rem;line-height:1}
+.pcard .s{font-size:1.9rem;line-height:1;align-self:end;justify-self:end}
+.pcard.s-s{color:var(--s-s)}.pcard.s-h{color:var(--s-h)}.pcard.s-d{color:var(--s-d)}.pcard.s-c{color:var(--s-c)}
+.hand-meta{display:grid;gap:2px;min-width:0}
+.hand-meta .hn{font-family:var(--font-num);font-weight:700;font-size:1.6rem;line-height:1}
+.hand-meta .hk{font-size:.82rem;color:var(--muted)}
+.where{flex:1 1 260px;min-width:0;display:grid;gap:4px}
+.where .line1{font-weight:600}
+.where .line1 b{color:var(--accent)}
+.where .line2{font-size:.86rem;color:var(--muted)}
+.order-strip{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+.os{font-family:var(--font-num);font-size:.78rem;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.os.f{text-decoration:line-through;opacity:.6}
+.os.a{border-color:#e0743f;color:#e0743f}
+.os.j{border-color:#9d52cc;color:#9d52cc}
+.os.l{border-color:#3b86cf;color:#3b86cf}
+.os.me{background:var(--accent);border-color:var(--accent);color:#1b1305;font-weight:700}
+
+/* ---------- actions ---------- */
+.question{font-size:.9rem;color:var(--muted);display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px}
+.actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
+.act{position:relative;display:grid;gap:1px;text-align:left;padding:9px 12px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel);min-height:62px;transition:transform .08s,border-color .15s,background .15s}
+.act:hover:not(:disabled){transform:translateY(-1px);border-color:var(--ink)}
+.act .a1{font-weight:700;font-size:.98rem;line-height:1.25;padding-right:20px}
+.act .a2{font-family:var(--font-num);font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.act .key{position:absolute;right:8px;top:7px;font-family:var(--font-num);font-size:.72rem;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px;line-height:1.35}
+.act.fam-fold{background:var(--t-fold)}
+.act.fam-call{background:var(--t-call)}
+.act.fam-raise{background:var(--t-raise)}
+.act.fam-allin{background:var(--t-jam)}
+.act:disabled{cursor:default}
+.act.dim{opacity:.55}
+.act.chosen.v-best{border:2px solid var(--best);background:var(--best-soft);opacity:1}
+.act.chosen.v-ok{border:2px solid var(--ok);background:var(--ok-soft);opacity:1}
+.act.chosen.v-bad{border:2px solid var(--bad);background:var(--bad-soft);opacity:1}
+.act.rec{opacity:1;border:2px solid var(--best)}
+.act .tag{justify-self:start;margin-top:3px;font-size:.68rem;font-weight:700;border-radius:4px;padding:0 5px;color:#fff}
+.act .tag.t-best{background:var(--best)}.act .tag.t-ok{background:var(--ok)}.act .tag.t-bad{background:var(--bad)}
+
+/* ---------- panel ---------- */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:16px;min-width:0}
+@media (min-width:981px){.panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);max-height:calc(100vh - 24px);overflow:auto}}
+.panel h2{margin:0;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-family:var(--font-num);font-weight:600}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;margin:0}
+.facts div{display:grid;gap:0;min-width:0}
+.facts dt{font-size:.74rem;color:var(--muted)}
+.facts dd{margin:0;font-family:var(--font-num);font-weight:600;font-size:1.15rem;line-height:1.2;font-variant-numeric:tabular-nums}
+.facts dd small{font-family:var(--font-ui);font-weight:400;font-size:.74rem;color:var(--muted);margin-left:4px}
+.zone-pill{display:inline-block;font-family:var(--font-ui);font-size:.7rem;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:2px}
+.z-green{background:#1e8a52;color:#fff}.z-yellow{background:#d9b21f;color:#2a2205}.z-orange{background:#e2792a;color:#fff}.z-red{background:#cf3838;color:#fff}.z-dead{background:#333;color:#fff}
+.share-bar{height:6px;border-radius:3px;background:var(--panel-2);border:1px solid var(--line);overflow:hidden;margin-top:4px}
+.share-bar i{display:block;height:100%;background:var(--accent)}
+.hint{font-size:.84rem;color:var(--muted);margin:0}
+.kbd{font-family:var(--font-num);border:1px solid var(--line);border-radius:4px;padding:0 4px;font-size:.78rem}
+
+.verdict{border-radius:10px;padding:12px 14px;display:grid;gap:4px}
+.verdict.v-best{background:var(--best-soft);border:1px solid var(--best)}
+.verdict.v-ok{background:var(--ok-soft);border:1px solid var(--ok)}
+.verdict.v-bad{background:var(--bad-soft);border:1px solid var(--bad)}
+.verdict .vh{font-weight:700;font-size:1.15rem;display:flex;align-items:center;gap:8px}
+.verdict .vh .mark{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:.9rem;flex:none}
+.v-best .mark{background:var(--best)}.v-ok .mark{background:var(--ok)}.v-bad .mark{background:var(--bad)}
+.verdict .vs{font-size:.9rem}
+.rec-line{font-size:.95rem}
+.rec-line b{font-weight:700}
+.rec-line .alt{color:var(--muted);font-size:.86rem}
+.kpis{display:flex;flex-wrap:wrap;gap:6px}
+.kpi{border:1px solid var(--line);background:var(--panel-2);border-radius:8px;padding:4px 9px;display:grid;line-height:1.2}
+.kpi .kk{font-size:.68rem;color:var(--muted)}
+.kpi .kv{font-family:var(--font-num);font-weight:700;font-size:1.05rem;font-variant-numeric:tabular-nums}
+.kpi.pos .kv{color:var(--best)}.kpi.neg .kv{color:var(--bad)}
+.theory{margin:0;padding-left:1.1em;display:grid;gap:7px;font-size:.9rem}
+.theory li{padding-left:2px}
+.theory b{font-weight:600}
+.why{font-size:.9rem;background:var(--panel-2);border-radius:8px;padding:10px 12px;border:1px solid var(--line)}
+.why .wt{font-weight:700;font-size:.8rem;color:var(--muted);margin-bottom:2px}
+
+/* ---------- range grid ---------- */
+.chart{display:grid;gap:8px}
+.chart-title{font-weight:600;font-size:.9rem}
+.chart-scroll{overflow-x:auto}
+.grid13{display:grid;grid-template-columns:repeat(13,minmax(22px,1fr));gap:1px;min-width:300px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.cell{aspect-ratio:1/1;display:grid;place-items:center;font-family:var(--font-num);font-size:clamp(.5rem,1.05vw,.72rem);line-height:1;background:var(--c-fold);color:var(--c-fold-ink);position:relative;font-variant-numeric:tabular-nums;text-align:center}
+.cell .sub{display:block;font-size:.85em;opacity:.9}
+.cell.raise{background:var(--c-raise);color:var(--cell-ink)}
+.cell.raise-mix{background:var(--c-raise-mix);color:var(--mix-ink)}
+.cell.call{background:var(--c-call);color:var(--cell-ink)}
+.cell.call-mix{background:var(--c-call-mix);color:var(--mix-ink)}
+.cell.jam{background:var(--c-jam);color:var(--cell-ink)}
+.cell.jam-mix{background:var(--c-jam-mix);color:var(--mix-ink)}
+.cell.mix-rc{background:linear-gradient(135deg,var(--c-raise) 50%,var(--c-call) 50%);color:var(--cell-ink)}
+.cell.mix-rj{background:linear-gradient(135deg,var(--c-raise) 50%,var(--c-jam) 50%);color:var(--cell-ink)}
+.cell.mix-cj{background:linear-gradient(135deg,var(--c-call) 50%,var(--c-jam) 50%);color:var(--cell-ink)}
+.cell.me{outline:3px solid var(--accent);outline-offset:-3px;z-index:1;font-weight:700}
+.cell.me::after{content:"";position:absolute;inset:-1px;border:2px solid var(--panel);pointer-events:none}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:.78rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.refs{display:grid;gap:4px;font-size:.8rem;color:var(--muted);margin:0;padding-left:1.1em}
+.refs a{color:inherit}
+.next{justify-self:stretch;border:none;border-radius:10px;padding:13px 16px;background:var(--ink);color:var(--panel);font-weight:700;font-size:1rem;display:flex;justify-content:space-between;align-items:center}
+.next .kbd{border-color:currentColor;opacity:.7}
+
+/* ---------- lower sections ---------- */
+.lower{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px}
+@media (max-width:980px){.lower{grid-template-columns:minmax(0,1fr)}}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;grid-template-columns:minmax(0,1fr);gap:10px;min-width:0;align-content:start}
+.box>*,.panel>*,.stage>*{min-width:0}
+.box h2{margin:0;font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-family:var(--font-num);font-weight:600}
+.hist-scroll{overflow-x:auto}
+table.hist{width:100%;border-collapse:collapse;font-size:.84rem;min-width:560px}
+.hist th{text-align:left;font-weight:600;color:var(--muted);font-size:.74rem;padding:4px 6px;border-bottom:1px solid var(--line)}
+.hist td{padding:5px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+.hist td.n{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+.vdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.vdot.best{background:var(--best)}.vdot.ok{background:var(--ok)}.vdot.bad{background:var(--bad)}
+.bytype{display:grid;gap:8px}
+.bt{display:grid;grid-template-columns:7.5em minmax(0,1fr) 4.5em;gap:8px;align-items:center;font-size:.84rem}
+.bt .bar{height:10px;border-radius:5px;background:var(--panel-2);border:1px solid var(--line);overflow:hidden;display:flex}
+.bt .bar i{display:block;height:100%}
+.bt .pc{font-family:var(--font-num);text-align:right;font-variant-numeric:tabular-nums}
+.method{font-size:.84rem;color:var(--muted);display:grid;gap:6px}
+.method p{margin:0}
+.empty{color:var(--muted);font-size:.86rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:640px){
+  .plate{padding:3px 3px 4px;border-radius:8px}
+  .plate .pos{font-size:.8rem}.plate .stk{font-size:.9rem}.plate .chipsline{display:none}
+  .plate .st{font-size:.6rem;padding:0 3px}
+  .order{width:17px;height:17px;font-size:.68rem;top:-8px;left:-7px}
+  .bet{font-size:.78rem}
+  .pcard{width:50px;height:70px}.pcard .r,.pcard .s{font-size:1.6rem}
+  .backs i{width:11px;height:15px}.backs{top:-11px}
+}
+</style>
+
+<div class="wrap" id="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="eyebrow">Preflop Drill · NLHE Tournament</span>
+      <h1>홀덤 프리플랍 드릴</h1>
+    </div>
+    <div class="scores" aria-live="polite">
+      <div class="score"><span class="k">플레이</span><span class="v" id="sPlayed">0</span></div>
+      <div class="score"><span class="k">최선</span><span class="v" id="sBest">0<small>%</small></span></div>
+      <div class="score"><span class="k">허용 포함</span><span class="v" id="sOk">0<small>%</small></span></div>
+      <div class="score"><span class="k">연속 정답</span><span class="v" id="sStreak">0</span></div>
+    </div>
+  </header>
+
+  <section class="controls" aria-label="훈련 설정">
+    <label class="ctl" for="optPlayers">인원
+      <select id="optPlayers">
+        <option value="rand">랜덤 (3–9명)</option>
+        <option value="9">9명 풀링</option>
+        <option value="8">8명</option>
+        <option value="6">6명 (6-max)</option>
+      </select>
+    </label>
+    <label class="ctl" for="optDepth">내 스택
+      <select id="optDepth">
+        <option value="rand">랜덤</option>
+        <option value="short">숏 (4–15BB)</option>
+        <option value="mid">미들 (15–40BB)</option>
+        <option value="deep">딥 (40BB+)</option>
+      </select>
+    </label>
+    <label class="ctl" for="optAnte">앤티
+      <select id="optAnte">
+        <option value="bb">BB 앤티 (1BB)</option>
+        <option value="none">없음</option>
+      </select>
+    </label>
+    <label class="ctl" for="optBias">핸드 출제
+      <select id="optBias">
+        <option value="balanced">균형 (쉬운 핸드 일부 제외)</option>
+        <option value="edge">경계 핸드 위주</option>
+        <option value="real">완전 랜덤</option>
+      </select>
+    </label>
+    <div class="ctl" role="group" aria-label="상황 유형">상황
+      <div class="chips-toggle" id="typeToggles">
+        <button class="tog" type="button" id="tgRfi" data-t="rfi" aria-pressed="true">오픈 기회</button>
+        <button class="tog" type="button" id="tgOpen" data-t="vsOpen" aria-pressed="true">레이즈 상대</button>
+        <button class="tog" type="button" id="tgJam" data-t="vsJam" aria-pressed="true">올인 상대</button>
+        <button class="tog" type="button" id="tgLimp" data-t="vsLimp" aria-pressed="true">림퍼 상대</button>
+      </div>
+    </div>
+    <span class="ctl-spacer"></span>
+    <button class="linkbtn" type="button" id="btnNew">새 상황</button>
+  </section>
+
+  <main class="layout">
+    <div class="stage">
+      <div class="table-wrap">
+        <div class="table-box" id="tableBox" aria-label="포커 테이블">
+          <div class="rail"><div class="felt"></div></div>
+          <div class="pot" id="pot"></div>
+          <div class="blinds-tag num" id="blindsTag"></div>
+        </div>
+      </div>
+      <div class="hero-row" id="heroRow"></div>
+      <div class="question"><span id="qText">무엇을 하시겠습니까?</span><span class="hint">단축키: <span class="kbd">F</span> 폴드 · <span class="kbd">C</span> 콜/체크 · <span class="kbd">1–4</span> 레이즈 · <span class="kbd">A</span> 올인 · <span class="kbd">Space</span> 다음</span></div>
+      <div class="actions" id="actions"></div>
+    </div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </main>
+
+  <section class="lower">
+    <div class="box">
+      <h2>최근 결정</h2>
+      <div class="hist-scroll"><table class="hist" id="histTable"><thead><tr><th>#</th><th>상황</th><th>자리</th><th>핸드</th><th>유효</th><th>내 선택</th><th>추천</th></tr></thead><tbody></tbody></table></div>
+      <p class="empty" id="histEmpty">아직 기록이 없습니다. 첫 결정을 내리면 여기에 쌓입니다.</p>
+      <div style="display:flex;gap:10px;align-items:center"><button class="linkbtn danger" type="button" id="btnReset">통계 초기화</button><span class="hint" id="resetHint"></span></div>
+    </div>
+    <div class="box">
+      <h2>상황별 성적</h2>
+      <div class="bytype" id="byType"></div>
+      <h2 style="margin-top:8px">근거와 계산 방식</h2>
+      <div class="method">
+        <p><b>딥 스택(25BB 초과)</b>: 포지션별 오픈·디펜스 레인지는 100BB 기준 GTO 솔버 결과를 단순화한 근사 차트입니다. 경계(혼합) 핸드는 두 선택을 모두 허용합니다.</p>
+        <p><b>숏 스택</b>: 169×169 프리플랍 올인 에퀴티 행렬(매치업당 몬테카를로 약 24,000회)로 chipEV 내쉬 균형 푸시/폴드 차트를 직접 계산했습니다(동일 스택, 오버콜 무시, 카드 제거 효과 반영). 리스틸·콜 판단은 이 행렬로 실시간 EV를 계산합니다.</p>
+        <p>모든 판단은 chipEV 기준입니다. 버블·파이널 테이블처럼 ICM 압력이 큰 상황에서는 더 타이트해야 합니다.</p>
+      </div>
+      <h2 style="margin-top:8px">참고 문헌</h2>
+      <ol class="refs" id="refList"></ol>
+    </div>
+  </section>
+</div>
+
+<script>
+'use strict';
+const DATA = /*DATA_START*/{"hands":["AA","AKs","AQs","AJs","ATs","A9s","A8s","A7s","A6s","A5s","A4s","A3s","A2s","AKo","KK","KQs","KJs","KTs","K9s","K8s","K7s","K6s","K5s","K4s","K3s","K2s","AQo","KQo","QQ","QJs","QTs","Q9s","Q8s","Q7s","Q6s","Q5s","Q4s","Q3s","Q2s","AJo","KJo","QJo","JJ","JTs","J9s","J8s","J7s","J6s","J5s","J4s","J3s","J2s","ATo","KTo","QTo","JTo","TT","T9s","T8s","T7s","T6s","T5s","T4s","T3s","T2s","A9o","K9o","Q9o","J9o","T9o","99","98s","97s","96s","95s","94s","93s","92s","A8o","K8o","Q8o","J8o","T8o","98o","88","87s","86s","85s","84s","83s","82s","A7o","K7o","Q7o","J7o","T7o","97o","87o","77","76s","75s","74s","73s","72s","A6o","K6o","Q6o","J6o","T6o","96o","86o","76o","66","65s","64s","63s","62s","A5o","K5o","Q5o","J5o","T5o","95o","85o","75o","65o","55","54s","53s","52s","A4o","K4o","Q4o","J4o","T4o","94o","84o","74o","64o","54o","44","43s","42s","A3o","K3o","Q3o","J3o","T3o","93o","83o","73o","63o","53o","43o","33","32s","A2o","K2o","Q2o","J2o","T2o","92o","82o","72o","62o","52o","42o","32o","22"],"eq":"gA4E4C3j3V4p4Q4I4l3d3q4C4P7t0V1Q010x1N1d1M1F1e18172e7Z4A0Uzsznzy0z1k1M1Z1x1_2N7K3i2Wz-ydy-zj0i1S1G1f1X19663P1403zzxiytzM0o1J1J1b1V783e2b1b0Sz7yBywzH0b1Z1i16724i3W1t1B0VzOxXyYza0d1o1U774R323J2G1O0Uztxpyozn051w8H4F3y3-3A2B020Azkxxyvzk0x6o4Z4G3w3x29171Mz3z2yazf0q674j4V4C324E232R1U1G0Fzp047a4v4q4T394O4M3g2a2I2X0P0_7v5E4w4u4O4l4B4i3W3L3c320dH7gAtmtatZthtitJtHsms4totUhnV3thtateuiuauVuZuau1vRvIwbwhdJofolpFp_qIqNqDqyqmrQwCv6qXdbntoepApppxqDqlqbqkvywEqPpadGnjoHpBpuqJqGqXqswCxZrMqHpveaoFn4pIpIqTqEqPwPxHrtq-qGqSeHnMnsohpIqQqBvzwosVrerGpvpQetm8n_oUpPqOwRw8rsr0rHqDpmosehmvoFoXpbvWxRsUsIr7rfqXpVpQe5nUoJo7vvxvsmsEsRsQrJqepXo6fKoCo9vzyGsjsdsQrwsfrWqpqTqOfnpLwPyStHs0sesSsKsUrQqyrJrWf6H9SZgAtJtYtLs7tHtIsssosss8TFUntunjnSnooxofoYogotokpKhqwxVusnsutptpuVuKuvutvNvXwEphvndOn6oVpDplqPqQqqq8qrvkpWvFpZden8oqpLpdqLqEqzq9v-p-wkqppsePnioEpEpjqUqUqbvsqSwBqzqFpUemnSnyoopcqIqWv2qQw4rqqoqFpGevnfn1pLpoqbvqqXw4sFrbqjp9pDennNnuoyplu1qZxSsIsRrbqjp4o0fFneoTo6vKqZxdsasgr-rYqgqTpPfWoEpGverExntCsYr6r_rcqSqDp-fvpQvqrCyBsmsnsOsHsprcqbq-rOf7IcSlS2gAsys6sesksksHr9sTsiTLUplwtznAoHo5oeoaoioupEpIS_nrUfsrm6njoRohomoNooo1pHhpwcvFWYrqtPsstnuwuPu0uvvOvHpRozuidEnzoWpXp5qSqNqQrCvXpxpSvnpVecnqn-ojpfqDqZqfvGqmqSvTqZpHebnNoCo8pyqqq0vRqZqiwDq3qBpAevnWoeo8ptqVu7qgqOxWrjrCpapffKnjoOpHqCuXqYqBxAsfrdqiqOpge0ngoYo7u8qwq0xnsQsGrpq4qKpafWojo3u-qtrLxosvsZshrUq0qMqhfwpVvhrmrLyEtBslsOsZrzq_rPrXf-IqSmSnTNgAsBr6r7r3q_rUrvsAToU9mAlptOoMpEo_ozoro-ozpcTjntU6lOsen4odouoVoho1oso-UFnImwUzsDnYnHn0oxoyojo_pYhmwRvWt-WGr_sBs5tQubueu3u_u8qVplpFu4eQnlodokpJqcqvqwunrAp7pKurpeegn2oOo3pbqiqiujqzq3qAvqqFpLewndoGo-pwq2umqWqTqRwLqmplpbfAnroFpUpytyq5qpqPxKrtq-qVpgfunWoYpPtxqzqxqoxbsarlrGqTpof8oUpXuSqoqvqXxosrsJrrq9qHqPf2pQufrQq8q1xus3snswr8q-rMrQgWHWSeS0TFT-gAqeqXqwpXp2qYqqTJUXk4kpkwtVoNoLnknyoZoFoFTom7UGkNkJstntoPoCnwoYoDoXUCmFl3UUjorbmrnfoGnvn9oGocUdmVlclDUDrFlvmim0n0oOnmoEhgwFvJuMs9VnrZsRsitdu-umvBtQqdpforn_tndTngn1o5psqOqPsppkpxpKoWuhpEdVnHn2o1p3qotIpPp0p6o6vYp3pBeCnYnwo6pgr-p8pkpjpmwVqqp7o-eensoHo6sWqCqBp0pyxervq_puo8e8oepKsVqKp-prp4xWsUrPqnpvqUfjousvqLqQqQqNxysCr_rYrLq6rJf-HvSdTEThUFVhgApCpRoYoSo1okTRUBkQkpkVlXuSoLn4nxn4oLosTrmZUpj7kElEtVocn3npn8oRopUUmGl5UmjEkcs2ndoInvoJoLoaVHl6mCk2Udjwrlm-nHoEoGoMohWKncmTmDlUUvqlmcmkoGnyoYodhgxEwPvIuFtgWEq2r9tBt1uyuwrfp4qOpmoYoXtVdqnRn9o9p0qmrcp6pzpwpBoiucpOdvnLoTpApxqpp6qFp2p3pwvcp8pQe4nEoCpNq2puqEp3p1qDwiq7p6pWehompprQqTqdqKqFqvxrsFq2qQqbfYpmrJqSqIqdqSqaxlswrwq-rJrSgSH3S2S4TbUEVoW9gAnamRmjm1m5TqUtkWklkXlFmGuNoAoCoUoEoqTtmbUnjRjfk6lZt4nxnsoBoAoYUQl9lTUrjBj6kqs_oJn9oDnvoGUymKlTk_UdjqkZr7nXn0n2odnyWRnbmMmDlFUgjvrtmynjn-oSoNXsoHmzmkmNlUU9rFmMnKn5oaoUhew5wpvfuouLtAV0rPsis_t8vBpnp8p7p4o9o2nztzdznGoHo3pvohqBp2psp2pQonudpYd_njoDpfo3qIp4qGp5qFpKv4p8pSesobpRoyqXqLqVpwqWqiw1rJqAqbfWpSpOqqqTqap_qfqlxwsMrUrQrcgDHaS4S3TbUIVPWuYlgAkdkakokuThUQkikgj5lKl4lzuWoFoXoYoET1mOUWjXjWkIlLmDt_oCoLoHoOUBmFlPT5iXjokYlXt9n9nwnpoUU9lylXkVUOjUkAkxs7oKn0oFn_V7m8mCk-k2VRjhkksKnhoWoCoBX-n9nQl8lklZUzjnrLmmnVoQoNZqoAn3m3mfl5lMVCqemWmqnSoLhew8wZwmv1u-tutUV9rOsLtIuamXqBpvqJp0o8orn9tmdenToMo8mkqEp4pyprpwpEpHuxo5eDoapOmkqRqKprpip5qKpvv7pmqFejpIm6qbqVqHpxqUqJqdw4qzq2rQfTIiTZTTT4VAWoXnZubigAjNjdjNUPVekfkUkdlPmhmRmNuKpMpGpKUlmiVNjwjekslWmLlmuBoXpEo3VKmxllVbjBj6k3lbl0t_oYokouVplzlTkzVEjFj0kTlNtroZoOoeXjnFmVlMkpVNjykflQtKo5orpHZKn_nImWlnk5V_kIkWsXoIo9o1awoFoUnAmKmBlHV3jwrsnqoDpAdKn1nqnlmfmzmAlpV_rInAoJouhpxRxSwZwav7u0uDtBXnsWs-t8laqgqyqbqTqrp0pgo-uze1pYqHlerKrHqmp7qaqiqmqAv_rNfPqWlbq3q5qtqgqjquq7qcxDsIsdfwIVTHTXUCUrWJXtZcblcygAhSiIUBVOkokZj2lBmGl7l-mkuPozpBUomjU9kBjYkUlNl9lrmnuSo2o1U3malLVAjOjikdlGl4mZubojorVqmKlikyU6jNjqkQlImKtnoPolXFnEmUlzkpVai_jykWlqtwovoRYjoBmmmPlTkyVjjZjrlNtHo-oyaln8ntnBmKlxlUV_jgk3seoEoxc5n3nsnem8mNlzlYV-kUr-nVoWeRoboKoroEnbnOmPmAVdsEmwnyhnxKxFw1wlwqwEuzuAuSXjtiuAjqrHqIqqqBqWqup_pVo7vqfNqFjsq0q2qfqkqZqpq1qEp9xGsUfzH9SXTTTsUQVnXKZKbXcietgAhrT3VOkgkskdlblplUlmmlmquSo9T9mLVBj6jykmk2lvlXmSmouZo2UpmXlrUqjBjgj1ktlYmPmDt9otVblulIkkVOjNjskDlKmGl-uKoRW2nLmSlEkzVvjGjukelumfuFoNYinOm3lulhkxVNi2jVkilOuQoJaqnPnsmvmZlUkDVhi_kSlAtpooc5nYnAnXmfmHlDkoVZj7klsgoJeBoLoGn7oGndmgl3lWV2kJsWngfwoyoeoWnwoCnRm5mOlpV7stnvhixYxRwwwnwpwcvzvHvSvdX4ufjdqvqwq_qkqIqIqQqPpTpdw6fyHwSrTDTdT_VVXbZGbRcyd3eUgATMUrkvkekclalrlulRmJmRmsuwTSmoUdjkjwkSk6lnk9mxmUmfuRUBmJlUUfjGjfkalSlamCmTmbumVNmIlZkpUti_jfkakslvl1l_uGWxm0mElrkdVWjSjlkRlXl9mduTYUntm3l_lTksVOjHjCkrlUmIuLaTnTnWmYl1lYkcVMiSj_kolxt-csngnXnTmUmJkwkGVZjQj3k4tEeDoNnqn2n5m_mmlclCVdjvkrtOfvoVoXoKnLoKm5momClvWBk4tvf9ofoOoCoTofn5nZnAmRmyWBtrhjx1xBw0wuwtwvwlvrwQwGwjYUESeYs6s0sXs2susVserwr-sIszgATVsysysnt1tstftbt-ucuQu1vVv6bcnCmwn0oLoqozpKpApRpbvgvdplbXmImpnfoNopomolo1pRvVvspeoPb1mWmangnwoqopo4pKvSw9pppuowc6msmMnTnwodopokvZwrq0pmouozcolimhm-n1o0osu9wgrZqkptpNn1cylHmMm7oOoivMwcrDq2qKpfoWnZdClNmpm6n0ukwprFrdrEqrpcoUoJdAlmmhnbu7w-rgq-rWrYqXpHownmdnmyn7u-xRr2rPrirTrOqUpno3pSeHnmvIxksCrprxrnq_rYqup3qQqretLqqIrYrWrCror-rSrvqhqxqxrUsqgA3R282w3t4w4g4o4c4o5A47t06T0k0h0c0l0g1g1J1C1Y1t17t06F3R0azKzkz20X1Z1U1Q1p17tR6B3B13z-ydyrzu0Z1H1J1P1kt47G3b1_04zoyByxzi0M1P1H1ets8E3q2W1H0gz3x7yszs0w1n1it17q4X3F2R0-0AzcxPynza0Y1ct17z4C4I2010070Ozdx0yzzv1Bs2714F30372w2M060Ozmxqymzks9704T4F3o313T2A1Qzqzzy_z-ta8W4q4Z4D4H4M3H2W0v1az20Mtm8k4t4q4W4C4O4Q3c2M2b2z0cKvSeSRaPZ_bHbvbpbdbgbXbfbQTNIugAtgtWtftctetRtHtjtjuAS7hkW8tWtetfuiuSuFuEupuhu2bswFvxd_onpbpjqMqsq7q1rDrHbYvmvvqUdjoYpLpXqVqbqjrBrGc7wBv8q_qQeHn7o3o2paqQqPqqduwFxArzq0p7fNoroUoapxqkqhdiv5xCsVrWqaqpfJnLoAosppqOdPvqw8sxr0q5p3prfPnVoHoypodIvwwnstserhqip1pSflndn5pKdNv8xTs9spsUrfqvqMpOf-oepRdIwexetFs6sjsorbrDqVqJgPpUdXwmxutPtpsmsmszsCq0rKrhgnLKSlYcSMaWbWbWbabfbrbmbTbhTNJDSfgAsntFsls1sysss6sxtcaOTQUMtRnIoLoqo8pIoypPpGpdTThpwIWpsasltftZuKtyuNumuybsvXpDu2duoXpOpbqiqzq7rRrjdgvRqKvXqieen4ompgp-qrqnqrdKvZqlvyrAqAfMoBoVo8p-q4qpdRvmrQwIrgqFpRe6niocpFpnqXdxvXrBw7sPqlq1ppfpn4oTpsp5dDvKqqwis2sDqpqMpXf0nmoBo_c9vXrDw-s4swrwqlqDpGgLoXpHdXvrrJxSs7sesRr1rKqMqWgNpodRwbrbxbtQsesks4sCrKrsrfhRLOShYtY_SxbPbqbocGbicJbibjTYJPSpTYgAsIsdsdsMsCsVsWsPaIT8U8lhtSolpHpepXpfpNpRqTaYTzneUwsZngn3oepXpJpLpcpoS_hpv5u7WusCsrsutWuPuXuUu4c5uyqNo-udeWoEoopJpyq5qrq8diu6rHp7vHp5e0oAoUoup9qiqzdNu0rVqgu_qapZfZoFoKo7qBqodHudq4rmv5rGp0pQfkn9ofpWqJdfvCq1q7wysKqzqZpogAniowpTdFuarEq7wrsWr9rCqTpngmobpYdkunrhrVxFscs2rzrSqRqZgopsdxvYrurnxGs5spsqrxrQrdr5hcKyRdYXX4XzSqaoa6a1awa-akalSKISSgS6T3gAq6rEqoq1q9q7rYZkTdUSkkkttUoZotoHoWoyokojZaT3mWUVkJsMnhoCogoOoUoko1ZNUnmemGUCrWmvnSn0ofoGoQoiTHhkv8uzt7WIsDr0setZuUuUuscatmqUpFolurd0nYnxowpbqkqmb-tSqtp9pSuYpeePnQnro6psqXcitlqLqmpVu9qOpYe2neoSpHpxb_tMqTqKqJv1q2pppLfIneoLozcYtYqhqYqNxArWq0qCpjfhoWpFcztbqIqNqRxWsSroq2p_p8gFpMcpt6qjqlquxQsXsorcq5rNrfgBKiRlXOXGW7XyRtZ5aHZeZ5aWaUSTHPSjTaTiVFgApRo3o2pKpNpiZcTQT3j0jsk1s9n4oBnrnun3oGY6TllaULjIjvsUnXoAn8oFn6nuYlUilTkrUGjkrym_nJn_nqn3oBZMVlm1mBlgUEqvmAmsnBnon3oMSihkwDuntwtTVSq7rusItSucuLbQrUp9psoen-tgdcnhoAo4qAq7b1rzp0p4pWoduYpMd8nYnyo7p8bgrZpupUpppAu2pso3eim3n_opb-rTphpvpQqKv7qiqbpeeqoNo7cNr3prqJqRqGw9rmqtqFqJfGpJbzr1qEqAqEp5wusCrSqlq-rIf1KzRqXgXhXAX0X0RyaMZuaEaraRSgHfShTKTiU7WugAnUnGnZnknyYzTPUIjnjjkplctroBntoHnyoIY7T_lPT-i1kDlBtDofn9nvnmo7Y3UdlSk7UKjnkTsNnioEnonzoUZ4VymBmIk4UtkLrwmqnZn7nsoBZuX6nCmgl5lzU3qjmfmtntoyodSkhmwqv-usuCs-V3q7r5swtiujbtp0qRqHpkoloAtqd1nPoYpAp_bipvpqpcp3pPoXt_pleTnln8pGblpgpxpjpyp3pru6p7pdeqono0cnpkqOpzp8ptqPwIrBqFqOfopdcjqAqUqFqPqFqcxartqircrWgJK6RmXnXlXMYbYHX_RpZyaBaZauSkHXSuTNTzVXXIYrgAlMlZllluZTTuUEj9jakZlVl2twoJnzoNn5ZDUIlCUSiVjlkhlSt0nvnxnlnvY6VMlKkLUojGj5kusyoIneoGoIZ2WKmnldlGUsjqjzsQnsoHnsoFZwYDm6mYl6lcVkj3rknDnqocoNZjZzn7nQmhlslPVGqqmQm8nmoYSmhgwtwbvrukt2syWrq0rktFthb7nQqJpZqKphorn7tXeInYogpKbgndqHp6p4qBproguao1euoRpOcBnlqNp6pup-qZprveqIp_fVpKcFnrqNp3qKqHpyqawsqmrGrCf9KhRlXfXdXUYNYOX9X6R1ZbZaZ2SBHjS4TTT9VKXJY5azgAjEjtjUZaTgT3jNjhkglVl9mftnoMoloMY-UGliUSi4j3kmlel-tNnvoHoSY4Usk6kHT-ipjvkDk6tRoNn9oWZ7WXmMlhkdU9jakKkqs3oLnpoEZ6YAm7mTkzlUVbjykesRnsoboLZVZxnynBl-lmlPVMj4rOmlnrolZhcWn9n7mhmel9k-VZqjmMnHoGSXhlwgwMwLvau4t2tEWnq3sHtAaulGqLqVpep3pXokoGtgeaoTpgbClZqCp2pkp2qOpqo-ucqLfcpWbblWqOqZpnp4qGqVqEvvrTrLfeKDRKXSXRXBXmYHXrXoWzRwZVZuRjHXScTFTqVCW1Ymamc7gAh5h-ZHTXUKjdjNkIkml8lsmAuGoToXYrT5lXUainjdkSlNlnlktRn9oGYxUjlakKULiWjdkalhlxtcn7n_ZcV4lolCkVUAjLjhkRlGtWoIn1ZhXvmVl0lHkeUrjXjrlBswoSoGZkZynwm0mBlcknU_jIkRr7nloIZjcCnfnfm5l8lllGVYjlq_nKnlYneCnnnnnrm2mtl7lpVhqdmEm0R6hiwcwywEwQvmuztttMWxsNtFa-j5qGqHpppip4pTo3oJu6e9pebgj_qVqJpppqqPp3ppotvirIfoKEQuXbW7XMX6X0X7XnW5XMRtZTRvG_ScTOTpVEWyYbaacSeGgAhzYoS7T8jbjBkKkrlqlOlal4t3odYeTVlKUAiRjRkAlMlhlulettobYwUQlAkjTwiSjakckwlWlltWniZ1VzlulOkkUQinjWj0k-lptVnuZNXlmclsk2koUtimj2kOlCtcnwZGZunkmVlrlTkrU7i0j-kps4n6ZrcDnZnamplxk-krU8jfkIr7nfYleIn_nknkmhlzlyk9VCjqrem2YmfrnXn2ncncmymdlslRVurfm8SYhiwzwfwbwBwFvrubt2t6XKtKa9jqqDqGp7pYp6p4pWodo7v6faJhQ3W1W3WjX6XTXVX7W1W-XCRPRKHER_SjTwUnWdYNaRcreBeMgAYnSsTZjVjPj-kslJlclnlxlpuAYSTklMT3igjLj0kdlHlFlolpttYMUFk1joT5idjEjwkelaljlhtsZVVglok_kUUFiujsjuk0lUlTtTZWX5mzl-k8kNUniijRjkkalutpZFZXm3mXlZk2kaUdiPjLkmketfZNcCnJnNmglrlEj0U6jBjzkrsvYRdznJm5m9mZmBkmkiU2jZjssEYrfkninNnEnHmqlulrk_Vnj2sNYjfwoFntnpnbnRm0mflkl-V9sxSKhrwnwkwkwlwGwQvgu_u2vTXoEmPkeVtAscsXsUsSsKrarXsCstQqSLtElxl3mbmjnMmsmlm4nXnYgAvkTqsMsItLs2tkttt-t8ugvIvToFuwbXm2nCnfoNoloxpHpApnvEn9uooybemWmsnNn_o3oqpGpQu4o_v1paoIclmFmxnDnxovolpFu3pXv0p3pJoVcRl3mEm3n1ozoru1pNwmq1pyo_n0dalvmZneoPpJvCpDwSrgqXpforn3dLlTmRncnrt9pOwqrVrQqVpIoznxdclhm-nQuspBw7rerMrUqZpxonoVeHmmnxuspzxfrordqzraqspPoyo3epoCvKqMxXsJrartrVr8qgpxp-qBeYH_PePOYUYSZEZmZkZxZdZcZ0ZXQFFsebsvsDsisvswsRsfsotEtTQbgAUYseshs4t1totVtSuJt1uiZwvdvTbtm0nRoYo-pUpFphpmqEZpuvvbpKb_mhnfoGoJpFpUphp5atvWvsqEpYc4mfnGnHoDpCpBpTbRvhwbqtp1pXdWmzm6nUoBo3ozbVvYwDrEqmpMpXdjl8mZm_oUo1bUu7vvsIrSpfosoTeBlvmsnVojanvRwBrkrzqUpipJoBeQlemcnhadvbwIr5rmrfqgpkpDoSegmvnibEvoxAsBr9rMreq4p7pEpXeuoMa9v-xQsqstrfrRrsqIp8qFqOfNLri2qRrgrFr5rWrYrpqyrCq-rikjLbpDrzrDrtsIr3r7sIr1sDsmsVrngA151a2y3p4X4G4G4O4g40t0tv5F0x0x0l0K0u1q1W1o1s2FtbtX4r3A0Rzfzsz10g1U1X1Z2EtxuI513H2Iz0ycyyzu0M1g1U1ytyuM63282H1Kz3x-yezN0e1L1euBuY733X2S1N0izpyLyyzq0W1suDt87h4O3J2G020Szhxoyezt0qs_uU7k3_4A20141Q0EzwxmyhzttQuI734B3z4I3F2i1Lz9z2y6z9tZuu8L4e4D3-4U3Y2B1O1Y0N0DtfvF8d464l4o4X4n3H2W2k2t0rMTXgTYTUaxbycEcucocPb-cFcbY9LeSpSuaebbcLcYcCcycickcqTzThKGgAsPs5sotZs-sptCtetkUDTVhnXqs0s0tIt5t1uRt4uVuocYcPvJveeLpWprqYqXrcrbsBsIdhc5vQvsrAe9okpKpbqLrKrFrVdueLvVv9rQqefRono3pbqCqnqueOeXvuw2sUq-qqgVogoepdp-rAeceOvzwas7rbqYqRgZoLozphp_d6ePvWwYtgsMrrqapigNoQoVpNeXd-vcwxtSs8r-rlqppmgjo4pYd2eVvvxOt2s-s8sJrOqWqlg2ppeGeewRxXtutGtGtKr7q-rZsKhgMYXaTRZFThb2b7cgcpchcncNcPZPLjShY3StbScTccclcecyc-cwT3TeKlTwgAsMsZsSsMsNsRsjstavaHTfUmsmnyozpKpvp-qDp5p4UETVhfvaX5sesstGtWuKuLulubdQdJu3qeuveaospapeqtrjrirld4d-urq5u5qafWosotpvqaqwrBeleOu5rNv4rtqfgToboipKqrrHeSeDuqsBv6rhqlqCgXoQoopgqMeIeZuzrowusZrVqxp7g9oCokpTeEeWumr1wutesErGqoqFhBo8pReXeovarvw0tNs3sCrlqsq5hUpqeKeovCsSxktntGswr_rarXrtiOMNW6SWYcYHTSa7bFb3bTbrbZbtYLLaSgX0XaSrbKbWbmbfb3b1cBS0THJNTGTzgArNrQrfq1q1rBrYaKZUT5UokSszoRolpIovo2o5pfaMZmUYmLUir-nhn6ooovo7oxpIUDTXhjveuEXarbsisdtBuGuRubc4cotjqEouuYeioIoopMqAq4rHdvdGtbqap3vaqAfPncoLo_qVqwdVc2tmrNqRvCqUppfXnjo4pPqCcudktjqmq3vmrGqWphfYnwoQpCdRdmt3rJrYw2sErUqGpfgwoxpNdFdXtdrNq6w7s7rsrUqLqmgvphdSdmuLrPrOxMssswr-rCrlrXhTLMWASWXuXiYSSqama0apaybJbFX0LfRdXVW4XmTCajaqaqbZbUbTTJSKIWTXTmUygApPpto8pdpmpmZeZAUAUMjzkbs3oMoboVoboxopY-YjUXliUekdrbnMoKoboYozoeZ3ZiVvmVl1UEq3mrm_nxofoypATVT3hjvbuatmWurbrRsZtHuFt7cbcHsfptpJovuYeMnjn_oxpuqdcgcdr5qqpwpJuOpQeqngobo7qJcWcOriqBqQp_ujqKoufCnXoGo6cjc9rsqLp7qxwGqnpzpHfdoipRdAdCsFqgqlqUw6sAq8qQqFgZpZcrcwr-qoqiqlw3sgr4q4rLrRg0KbV3RqXeXRXwXjSHZ8Z0aCaQaYXVKfRtXDWhXSYHSUaJaCaDaVa2SbSXHoSmTtUvWwgAnTnKnWnQnqYfYMTvUMizj7kqs1n9nxnmn9oEYlXwUlkaULjqkUrznan9nsnhoBZiZOV9lrk5UVj8q6mrnYnqn-oCZcZFXTmdl2lIUaqjl4myncoJn8SqSyhlvguftgsuWRqkrqsYs9uXb2btpnqKpUomnotDdrnhnwo6p6bpbVpqpxp5pNomt7pRd1nAnkodbmcOpapKpnphpJvOpwpQejnspHb8cIpeprp1pfqAvwq-p4p0fgpacacDp1qaqHpyqCw5rvqzqxrWf_KzVyR1XZXqX9YIYOSAaZaUaobCXMK2R6W3WoX4X-X-SPZgaTaxajSSSqH5TBTzUgWSYsgAlElnlVlnZXYgUCUBinjokilattn5oBoCoMZPYcUykQUMjFkLlCsooOoDoHoUaCZEWAlek-UrkSkarsnRoJn2opZ5Z9XtmHl2k-VMj8rOm3nboMoUZ2ZeZ0nLmpltlqU_qdl_nfntomSjS_hmwdvduntos7WjqnrisvuFb0b1nbphqKpCohn0tdeNnqn8pBcAcFnKpyqDp0pWo6uApDewoGpNcOcanhqLqaqAqQqFvGqXqMfWpJcmcYnuqJp8qMqJq1wMq_rIrTgIKmV8RQXyXeYPYWYTX9R-ZYZtZOW1K9R7XNWgXpYUYSX2SYZ_alaYSBStH5TWTyVKXDY1a7gAjSjljrZsYRURUVixjvk0lxl4tfoVoToIY7YUU4kfUAijjRkWlNt3nwn-n4Z-ZSWElbkVUgjPkJkgsfn_oEn-ZgaJXxmVlFkPVAjwkJr1npn1oIZyaAZvm-lzl4lRVjjkqonMn5o0Z3ZbcLoKnKmRlklfVnqcmhm_n8SpSrhhwWwQvTuJtms_W_q2rbsibObelIp4p6pspmpOoBtceloRpPbQcLlFp8qCp7qFp0pFurqGfepfbwb-l2qFp5qJqOq4qCvZrIrVfgKOVNRSXXXKXnYDX-X0XoRtZXZrW_KnRWWwWyXNYRX4YMXzR5aHaOSDR2HxS9TuVKWiYpaYctgAhtiJYqYTUBUJiZjckmlElrl3troSoEY6YQUij9UMiijlkSlKl1tVn-oPZ0ZPV0lfkPUFinjlkKlDtRoGnpZkZkXcmKlSkVUyjSj4kRscoFoOZsZ8aFm-mOlGk2VOjkkfr6nnoLZ_ZKbvn6mmmDmClcVTjwq9nTnyZFZNeJnknxm3memdlPVpqMmmnFSrSmhiwZwCwDvCuStosnW3r3s0a3bfjtqDqBpzqipOojn_uHfJpUbeb_jmqYqDqMp5qbpqo1vmrQfXKAVZQyXKXTX8XuX_X4W7XJRmZgWuKSReW5WuXbYIYNXyXaXsSIaWRfSKHfShTcU-WZYvaqcaeSgAh3YtYWTUTsh4jNkIk8ljlkl7tuogYgYETzkCT3ipjGkNlIlslvtaoYZ6Y2WClTkLUDiyjtkjlGl3tRnzY-ZmXfllkgkWU6jBjQkMk3tNn2ZkZgaDmllzlIksVcjCjtkVsmohZcZWcRnKmlmBlOk7VBjWj6r8njYrZWd2nTnTmcl0lvlQVYjtrBnJYXZgftnmnxnmm3mLmCllV0rdnFSiSThowSwPwFv_vUuKtxt3XesxbNcIj_qPqFp8pepypQooo2vsfeJyUvQoW4XBXoXWXnXxXIXKXJRuWkKERJWiVsXcX5X3YGXzXoXiR_Q3RdHLSbTSUnWZYVaYcUd2eIgAYWXuTBTkicjljylQlIlMltlmuAYeX4UGj_Tuitjij8kzl0lUl5uBZIZDVnk6kSULifi_j2kal2ljtvZsZZXalpk3kEUZiyj2j7lClmtSZOZdZdlzlxlAkcUwikjckLlBtXZrZebxngmalplUkTVPjDj5kcsKYkZcd1nPncmjlgk7k-VWi_kGrwY_ZRfnnnnVnMmhmUlvkrWAkSsNYvZefrn7nhnFnumsmZlkmEV1sNSaSxhlwbwSwIvqv-vOugutu8XlE1P9P7eWr6r9rrrvr-q1rIrWr-QfSLkTsslnmlnFnEm8nBnUnhntQsmPSLr8lQl1mhngmomTnVnSnpgAveu0ThrCsIsJsvtTtst-ujuyumocnZtxb3mfm8ntn6pCpBpLpcu_o_oWvFoocvmCmrm8n1ououo2uepto3urpLoKcxl0mZnGn4o9o9ucpYpivnprotoSdHmAmrnSn9o3ujpgprwiqWpooyoNdZl6msnUoQtgpnpcwarbqRpao7n6dVl-m2nkt4pvpew_rNrmqGpxoyn9d4m1oIuSp3pjw8r8qxrVqgp2o-pTeUnouhqYqOxUsJryrVrlqlptp7qceYIdQFWePjY3Z6Z5aCZ6ZOZlZoZ2QiF6P6eWsMsIsasAr3r5sGsqsbX6QiSQsql4mrm_nznfnunsnpoRQhgAvHUarnr7szs2tktLtdt9uKZwuvoIuMb4myndn3pBpMpGpwqCa7uoowuqpJcwm0nJndoSo7o4pNbRumpxvmqRoqc1mOnQnCn3pIpIbBuyqMvpqjpJotd5mMmwngoRpDbTutqHwUrMqhpboXeFlhm6n0ouauuUpawKr6qapxoloceFl1m0njbfu1qEwlrvr5q0phpQnzenmvn7bYvEp4w5r_rnrhqVqHpHpGe2nrbRvOqqxFslrmr4r1rVqNqYqmfjJpVoQYQ6ZPaIaGasawaaa0aUarWaIuQOP3YhZpalawa9adaoa1azRPQsG6eYsgsGr_sQr9rur-srs-RLQ4gAVgscsXsqtbtas_tnt-uQadZoueuvceoFn3o7pZprqLqOqYblauuXu-qQdAmtntoZo9p5pbpxbtb3unvSqvppdym9nCnqoUo5pccDcpu9wcrOqNpQecnSmpoKoeptcRcBu5wJr2qqppp0etlwm0neo1cDcNuxwIsnrMqVpZotfbmMnFnvcFcIu6wSsfsCrEqFpNoPfJm_oBb6cLvpwrslsBrkrAqApUppfwoecHcVvawxs4sYsBr3rYqEqdrCfzMBikixpnrMrrrZrUsGqkq_rVrgkoLliApWrPrqr0sBrtrtrlr_sIkokSLOoVrZrXrzrzr-rqr2sTsbserlqfgA0g1p2f3L4J4T4Q4h41tht2tk3U0O0I0N0i0g1W1j1t11uTuHtx403E0CzgzOzf0Z1p1i1zt4uat2553L100Fydy4zo0i1h1ntxufuK6t2w191JzxyFyfzj061kuAuLuT7s3f2g1S0Wzmx0y70N1Lsqt5uA7S332_2D1R0fzrxryyzmtHuOuS7m4C4H3M2V1hz2z8y5z0tQuRua714l4L4K2-2h1A1U0M0Dt0uouu8W4u4x4d4a3m2X2d2d0gNiYSYFUVT8cXc7c-doc-cxc-c5Z3M1XYTlTmb2c3dKdqdHdYdudfZJZLLOTLTZbtcMdMdYdOdmeHdjU9UYTjLfgAr6sIsKsfsKsJsjsgVQUgTlhlYgsys5tat0t9t_ubuSeSdxdSu3vle-pgp2qQqqr6rkr_eVeqeMu4vUrTfjohpZqMqxrSrue3eje7uyvorrqtgLpLpOpsqcrffYezfPu0wgsfrLq3hWpPpKp1qte_fJe4vIwhs4sFq4q4hnofpHp1fJfefVvDwut7tDrzrOp4iKovp3fFe_fevcw4uCtVsdrqq8qtiGqFe_fRfQvkxquGt7tXskr9rvr8iLNBXhXqSwYnUkbjcFcXcFcdcfcgZWMbWkTaYfTzcQb8cacIcicuc0Y9YuLaTLYNTMbkcEcXcQcjcycaT3UEToKWUFgAqwrMrOq0rerYrXaMZvZRUaU0smntoepOpjpopiqAU2UgTwhivNX8sKsJsstHt1tzuCdbdIdItDpqubeuodpZpeqarKrododbdttjqiuvqOfToSolpdqOrpeXeDeetkrIv1rDqKgeoRpEpnqvdad_eGtFrkvfrjq5pvgmn-oepHeMd_eUt6rowrsvriq0qBg-oppqeDeLextrr8wetmr3rQqmqzhOphd_egeMuHr6xCtUtrserKrqrZhlMcW_W8TTY4ZUTJbVbnbIbicKblYgMJWcSgYIYeTra-bebZbtb_cLYgXnL1S3XMXuTIbVbdbLbZb3cNT2TMTVJgT3VPgApNpwpFpzqEqAaMZcYxUZUVk-sen2otpKoso_pNa3ZwZpWAmcUnrgnIoIoKpHpGpWUEUdTphru-uPXxrdsMsVtot5uLcjc8dHr3phpOtResnuoho_p_rIdddjdar6qbp2uzpxf_njoWpWqLdWdYdXr1rLqnuwqCpeflnPpBpadgdNd1r-q5rBvirWqQpNgRoXpSdceDdssbq6q6wor8roqLqmgkpMdmdydxsHrSrTwwtFsTrNrRrsg9LdWWWaSYYLYgYiTAaoaka5bSatXyLoVzSmXhX9YoS8atahayazbiXyXBLRSGW1XaXzTKalaOa7bDavTQTJSkI0T1UzWygAnlnKnrnln0ZjZCYXURUqkLkoslnwobofovo5aVZbY5VwldUrkIr4nhoLouolo7ZxarZOXimNlqVQqsnBnRoBowowTOTxTjhjvWuItYWtrXq8sCtKuPcgc6cppzppo2ostdeznmoRpap2crcjcfpxqYpppFt2pbe7nioLpacfcwcqpuqUqnpuuvqOo1fxogpCctdJdXqAqSqXqawHrBqFqWf8pOc_dAdPqNqZq7qywyr0rQrKrPgyKtWOVwRPXOX5X3X2SCaLaHanalXWKmVTR1WoXfX_XgSLaBaYaea4XaWrKVSKWQW3XkYCSSaHaUaca3SsSbSlH2TgUxWPYagAlFlKlQlfY6YNXmUfUIisjqkdsroKnsn6oYaBYrYmVykRUmjTkKrOnWohnuoBZrZyY4XIlelFUfjzrCmpnUotnyZeZ8ZjZSmhmNlTVLqMmTminnooSgSiTDhhvCuftRswWsqZrFsetHb3bhcDnVpspOoNnqsceTnen-pDbsb_b5nTp1p1pToltsorepoMpIcmcKcTnlqIp7qHpjvBqJpxfZo8cjc2cYnXqKp-p5qDwFqvqzq7f2K5V8VvRwXNYQYQYCYCSAZmZwZ9XZKrVESNW2XxYDYCYQSyabaRa6XOW6KpRuWBXQXqYOYGSgaIabazSTS0TAHsT1VLW6Y1a6gAjRjfjhY5YeXfUTT4iyjdkElVtPnzoPoLZ-ZYY4WDkOU6jNj0k5sloVodoJaEaLZOXek-kyVMjdkSrwoJoZoxZ5Z6ZdZml0l-lNVRjmq6mwnboPZ6aHZxcVnCmUmPmBVzp8mwnWn0TATWTFhpvyuwuMtSsRW8qRrSsYbWcNbylJpkqTphoqodswedoZpEbtcWcHljqAqWqWpqpItmqLfPpKb0cPcYlqpyqWqbqtqDusrIrZgCKgVaVVRLXcYCX2X8YPXnRkZ8ZsXaKvVKRyW0XrX6YQYOYQSuahaXW4WeKXSHV8XJXkYZX-XqSUaEaSSBSiSYHvT2UhWMYUa1cugAh7iNYxYQXbURUFjDjfj4lIlws9nvoWZsZHYOVwkQUgimjikMk8tUn1n8ZoaNZFXXlNkaU9i6kIkpsToEoFZ7ZuZlZ6mDlYktVjjaj2rdn7oYZ4Z2ZjchnHlslxlWVVjcq6nQoFZKZiZteNnem3mYlulpVnqRmPm1SjTNTDhlv1wLutuAtZsLXOrTsxbhbyb4jsqBpqqGpUpDn9tyfXpObfcGcWjkqZp4p_qApuo1u8rBf6KoVkVDRQXAX5X0YQYWXbXcSCZkXKKWU8RZWjXbYFYZYaX4YCSSaWW_WZKTRqWGXGXOYCX9XsXtSRaZRcSCSBHeTcUnV7YaavcgeEgAh_YvYGXjUHT6jDjGkJk6lnlytOoFZwZXYUVxkcT_iijQkilfl8tBn8ZTZmY-XJlAkbUcihjPkPlGtIn9ZzZ3ZbZYl6lAkVVMjWkAktsInoZ7ZjZ1cYmtl9k2lSVbjikdrpncZIZ0ZQdynymmlvlnlkVrjcq6mfY5ZgZhgCnlnomqmImClEWJq-nQSYSdS-hlv-vqveumuPtEtcXXsVbobxcBj9p5p4p1p5piozorvIf1KCVbVUQxWnXjXlX5XrXRXUXSRZWuKEU4RNWXXKYRXEYQXtX5XkSSWYV7J6RXWHWgXWX7XzX3X7XfR_RNR1RvHKTfUoV_YLagcedyeAgAYYXlXiTvTei5jBj_k9lwlklztbZXYrYKVSkMT7iWjekUkulEl9taZvZ3ZMXXkukGUmjHjlkWkvl4tRZOZLZiZClWlLkRUziMjRj5k2tNZkZyZZb1mclrlRkYVzjEjskospYtY_ZXeLnZm5lpk8kyVnjUkNrTYxZjZyfSnEnbm5lslgk7VtkFrbY6ZPZcf5nRnZnnm4mNl6lwWDr6SrShSphkwMwXv1vuvdt9uTuTXxFFQNQbQ4eZriq4rNrCqWqVqkqyQqSuknkTtAmynanInFnHnOnPnzQ7mWSkjnr7lznBnamwnEnFnfnhRZmPliSeqvlzlzmcnFnGnOnQnngAvRuZtdT0rJq8sIsytsuAugukt-pMoenrt8ctmPm5nfoDouooo-uKpXpGoKuDn_ckmNmenUoOo5oyuEpEppo_ubpFoRdQltm1nGoKpctqpYpfpHvmpzo7oKdDlqmfnfodtKp5pypgwlqxpio6oQd1l8msnrtCpfpvpbw2rxqTptpCodeKmrnetfpvqBp3wtrirlrFpzpepkevoLtjp0pzp2xqrirprfqnqYqAqOeqIwP7WpWuPuZqaFZ1aNaMZ1aRZ3QTF-QZQoeWrYrdriqzrTrcrvr6YCRQSojwsqmZncoPnjnrnvn7oHXjRQmXSJrfmQmjm9nynhnvn5oaQugAvQuRU0q7r9r1sttkteuAuFa_uEpYodtwcxmUm1nxoUpHo-plbVuNpjpHvHpRdJl_munsoVpmo-bKuJqRpVuUpSogdemBmgn9oZpAbgt7qAqIvfqZo5ozd1mMmvnNoMbwt0qdpzwCrHqHoxoie5mWm3oEbAtzqTp8wOrkrIpypXotfBnQnibUueqiqCwcryrlq6qQpzppfHoMbZuRqwqYxJsDsEr2q9qaqIqjfzKHVwQ6XMQpajZ9asaoasada3amWhI-QQW8QGZhasata1bFala_bKRXQkHUQ2egrnrorarNrHrdsMr5YmX3RhSbsamunOnooZogokocodRmQvgAu3VzrnsAs4sYtqtat5t7bua_t5o9uDdJnGndoZpIp1p7qIbpb8uapuugpUdfnEnInoowpHpIcZcIueqfvyqQpDekmlnNnfoXpecUcVuOq3vSqYpao9e8mOm3nzo4cTcWuNqvwbrWqFproxfimGndnmcScSt7q7wXsUrSqipoopfem3n8b0cvuZrCwwsJr6q9qgpppSf_oicOcgusrmw-s7rwr-rOqtqQqvgcLIWlWmRdSBa8bJbAbqbMbNbbbWXwKIVrRJREZ5bUbEb0b4b1bccXXNW1I_QhQlZ0adblbvbgcCb9cASORzRQIrearlrmrurgrsrur4sQSiRuRIgAWssWscshtWtYtStktvcNbpbLuHuvdTn0oXo3pyqFqKqYcccabeuHvXqieEnUoGoYpMqGqQcYcocut1vCqxpqeVnnnpoeo9qDdgdLdCuSwYrrqjpxfvnjnhoZpgc5dCdSuRwBsMqlp7qHgJmKnDn5crdPdGuOvys7rmqhpqoxgRnboTcxdNdbuKwhs-sur8q9p9pzg5oXdtdNdKvFwqtVs2sTr1qxq-q2hBMMi5ihi7p5r8ririrxq7rFqxrSkKMBiciRpRr9r5r1rXsBr0sPsGkhkALuh0oGrdrhr0rzr_rzsIsRkIkHjhLxnfrLrqrVr3sHr6sFshsLrLqMpTgA0z1l2E3J4B4J4G4guDuGtqta310r0I0Q0P0r1r1o1suIupuStx4m2tz-zkzg0A0l1z18uBuLubtp5t231_z7yjy5z00r13uIt8uTug6l3A2H09zxyIy6zz00tLuJuVuZ7i3u2T1W0t0Bx4yu0Ns2uTtzuE7c4M3t2X1G0Z0AzM0GtpuYubuc7q4d4Z3V2S1O1d0S0JtlutvQup744i4l4h3c2w2Q230GOdYcYDYMUAU6cPcVcrc6cycydAZpNiXnXoT9UpcbcYc5dWdpdtdiZpZeMgWpThUBbicVc6dcdddWdSZgZNX6L3TNTZbBb0dTdNc8c8dGU2VEUYTpLMgAqwqrq3rOrQrarWWFVaUYUghkYssZslsWtctqt-t-d1dnd4dFtQvSfapVp9qTq_r0r2eseeeleGtYvAq_f-oxpkqMqRrqe6ejeiegtWvdrUqkgWo8pRpfqsevfMfHfRtiwdsNrXq0hipPo2p0fEetfKfUtqv_tLsMrMqwhjo9peexfSfLfOt8wWtzsorwq3q1hjqXewe-fae-uTwutytnsbsFr0rViWNSX4XVXpT-aQUabmb_cLcVcTcgZlNUW0WxTUZQUNbscGcQciclc7ZTYgMTWUTTYeUkbrb0cucac5cdZDYiYILyTGYSThbXcVcicgc5c-VDUCT_TjKaVPgApWpnpvprqDp_bqbJadaCV6U8r7n1oRpHpjpbpyU5VXU6UQhqumYXrlrgsmsttktpd3dfdxcrrsp0uEfRojo4pYqZrTdxdpeDdsrwqRubqBffopoupxqUeHeYedeIsoquvprKqRgxoHo5pWd_eSd6eOsaroverlqappg6pBpIebeReqensYrzwnsxrjq_qahYp7eSede3eusnsAwmtlscrUrFsBh0MzW-W0WoTGZdZBUEbObsbvb8blYfMRWoWkTRYtZATybRb8blbjcPYyX5MKVnS5YFYzUMa9bpbtbycDYSYIXELdSlXhYJTabib7cHb2cAT3UKTHTeJ7VUWpgAnhnqn6oAoQbJaZZYY-V-VCklr6oFouo-pFp1a-bCaWZuXpl9VRq9nRn5oopUpnUcUsUyUWhpuftfX0q1rsr0s7t2c5crcmdKpxp6pEtRfHn-otpVqYdOdrdZdkqIqQpwuWpmgHnLoPpudldtdPdfp_rHqfuHqNpCgCokpVdjdydWd3qBrBrdvdrbqbqJg3p3dweBeMd-qsrIrXwLsMrrq_rjhtLXWRWiWGSvZLY4YoTEaya3a1bTYPLmVqVdSpYLY2YdTNbFaebPbhYAX2LfVoSpXXX1YlTXaya1a3bMYFW-WmLfSLWxXSYPTUaqa3bFbCTNTSTnSpI2VIWYYegAlqlTlwleaOZxY9YkV0Uijwkjr3n5o0o1ojaWanZrZBXLlSU7kBrDnYn7obo0aRaWZ9ZpZYmUl2VYqlmrnYn0oyToT7UKULhjuzt3s6XZq3q2r1tPcyctcpdDniqDpAostafNnhoGo3cochcycwoFqnqIpStupafcoXpNdPcwc1conrqhqlp0uUqKqif9pSdodAdOdGn0qzqtqtvYrDrHrIgkK2V2V0VtRkYLX7YLX1SUZ1Z5aQXVK4VkVMRwXgYAX7X3SuaOapalXIW6KrUjR1XQXkYCXxSIaKaTaLW9WzWUKpSCWcW1XkX1SwaPaYaPSTSbSVSnH-UxWQYVaVgAjIjcjoZnZfYiX2VhUUi-jpkjr6oGoGnzZsZ4ZLYLXIkfUrjYkNrFn1oloPZsZyZfY-ZNlOknU5j7qRm9nMn8ZmZjZhZ2bhmQljlcVJpamPnKnwTBTQTeTqhhuatXsxsgW-qOq2r8bAb4bucDlFqPpVocntsHetn1o7bjcYcOcHlQpjqQpcottXp2fSpJcCczcBcKlPqAqRqip3uaq8rVf0K2V5V7VyRhXxX5YJYLXmSYaBaKXWK2VcVERoX5YVYXYhXySjaaacXVWrKoUkR0XEXnYTX8YPSqaQarW-W5V0KcSAWXXTXgYTYMTCaNabR_ShSlStH2UvWUYFasc3gAhfiGZ_ZgYjXqVnUQiwjbkXlEsroIoMZoZ7ZiYjXNkEUyi3j4k0sDoan4ZgZpZfZJZdktk4VPjYkIrJnjoYaEZkZfZ0bnmUlclCVkjmqXnAnVZRZYZaZ0eOm_mQmHlaVypNmLnGTaTJTTTthuvhurtls4sFXjqgrTbpcIcJcMjvpjp8pTo2oAtPfWphbTcQcTcYj-p0piqJpbo4uVrIfwKkVoVMVvRIYZXzXiX6XxXwR1aAXHKwU-UuRrXvYIYMX5YCYESpaeW5WeKmT-RaXOXMYeX4YBYBSlaGW0WPVxKSRkWdXAXQYFXwYQSxaMRfR_SGSbH5UlV8X_aPcjeggAhzaGZCYaXdViUOiSjXkelCllsun0ZaZ8Y7YbW6j9UXh8jHjvk3syn3ZpZcZuZPY9lNkNVEjJjokqrwoHZlZ7ZuZ2bimMlRktVtjPkfrPnpZlZyZ_ZQeXmol5lelSVyjlqRmmZGZyZEZpf6nmmPmklkldWQqVm8TFS7S_TPhnvovVuctZs2s2XurobecBcEcljgp9psqRpUovoouXfjKqVTVCU9RAX7XeYNYAXhXaXuR5W1KbU5UcRHXeX-XrX3XpYAYdSTWvWGJ7T3RkW3XhX-XrYHXwXnR-WjV9VnKKRtV_WyXGXnX0XpX6SkRbR6SESQHfUpWAXvahcXd5eMgAZuYwYdXjVYT9iVi5j6kvlclftEZpZRZJYQXBkAUeiPjIjnk9mHsnZrZqZsYyY7kxkQU2ihjckWkYs0ZIZaZkZqbnlhlMjkVWi3jqkVrwZVZhZjZad7mhmAlIktVdjLkArNY8ZpZ3ZAf1nhmklhlLk3WYkHrGZaZhZMZKf8nmnUmpmOlilpWarwSwTWS5S6hivTvXvQuetvt6t2XwEDP9QBQoRDefp1puqEoco6pJpOQtSHjEifjGs4mzmHmJmEmjmKmqRHlSSOieivr8mImdl9mBmLmFm3RAlEkaRshtrJlIlql-mBmTmPmoSBlAkRjyR8p6kVk2lxmYmAl5mRgAvpujtTsUS9qPrKsDtKuSt7uKsbpNoKnQmXtBbulwmVnTn9oxpFsPo6o4oDnnuLnxb7lRmrnLoAossCoaomobn_uiointcHlWmGnCn_rLodoSoaoxvio6pFnzc2mRmum_reomorpKofwoqQpmpBoEdfmbnbrgo3pNosoow0rYqkp6o0pHd9nfr8pDo5pBpIxPrirdqepzqKqOeNIhOmWBWOVqP6YjYkZDY6Y7Y0ZLPCE5P-QuRNebqaqNp1poqHqMqfXAQpR3jGi2somdmxm7mtmwnJm8XARXlRR4iOrfmPmknUmnm4monUWzR7lAkWR5qlk2lmmOmgmfm9nPQWgAvAuEtDTWrIq5rxsTtntrtuaStCpAoPncttc9l8mcnJnxolpKZ6sgpZo6oBtqoVcemAmfnLoJpAZ8seo6pZoruWoxoPc8lvmanQoCaIryozpEovvApcovnpdxl2mYnEaKsepMpdpcwqqepmo7oKegmwnlapsepBpZpTwlrnq1p3pLpNeqnkacsyp8pnplxGrprUrDp9qGp-fAJkUzPbWtWaQ2ZsZzZ9ZqZrZtZ7WWIkQDV1VyQDZKZ-ZYZzaXaRaXQKQTGKQvRIecqQqCp_p7qLp9qYXpXPRoSOitsPmWnGnZnHnxnrn1XhWnSGk0SVrnlimnnCndncnlniRcQ_gAuwtjUwrTr3rYsRthtat3awa-tOpLoRtacgmrnEnzoUpmpibfbNs2pno3uio9dql0m8nropo-bha2sdqApUuepfoLdwmIm6nlotbDbesJp5pzu_qQpPocdtmQm8nEbebMsdqDqMv9rMqZpYoyeynDnxbAblsuqOpqwxrzrRqXo6pIe6n7bZbYs6qDp8wvrwrurBqLqeqWfsKkV4VWQYW6RzZ8Z8bBazaMa7aUWRKAVAQoXBRMZ-Z3aiaea9axbAWlV7I4QTVhQhZqaUahakagasbFQ6RVRBHLRIedp_qPqNp8qPqOqtYUXiXCR4Slrfl9nBnboJoVoiocSsR7RPgAuVVUrRrrshrytStUtsbQbmafsZoyt0c8nSnnoLpKp0p8b3bcbsswpat7pVdgmcnEoModp6cKcBcNsZp_vEqBpWeemznHoToycFb6cDseqeu_qppYosepmPm4neb6ckcrs5qtwHrlqMpuomfmnQn9b5cBcaswqrv7scrQqbpWpofroLcHclcVtTqqwosqsQrPqBqbqifpLtWQWTWqRHTCara6bJbWbWbMbiXPLHVvVdRiSEafbHa5bibqbbbrX3WnJ3U_RQR7aKbGbBbqbwb0btXXW2VvI7QaQyZjaibubxbubjbzSDSPR8RQIKebqFqBqLqeqYqdqnTrS8ScRqgAWVrlrzsIsztGtAtUcGb8bebEsquidWncoKo9pmqJqXcPclcsb5sjuTqFeknWn2oApMqLcvcrcgc1souhqrpofdnPn1oIpMc5dYczdJtSvarVqApUf6nInmoXdGc5dAdKs0v8r_q-qHpsf5npoXc2c_dSdFtFvktLrsqwpqpmgioYdWdTdedDtbwOtNsprwq5q5q5hBMEhlhwhjhvqYrQrfquqyqlqQqpjFMXh4hhhpp3r7rSrTrCr_rvr6jajHMLhChlolr7rqrUrfr6r8r0jQjPi_L9hBoDrYrUrZrFrfsAsEjSjOi2isLUnTrDq9rdrrrvrxsCtCsprPqrpqgA0X1X2J3A4I4S4Vtjt-tYtjtL3x0k0H0g0Y042A15tIt2uLt8tU4j2x0UzZzb0A091ztmtbtstjti5W242Iz6yEy40N0vsbtftqtytx6d2s2L09zxx4y9zrtAtruAuPuD7k3c2v1i0e0Myz0Gs5tquOuEt87b4t3e201T190Uz8tXuLuauLur7r4k453f2Q2s2c0YN-X6YdYVYaUmVacQcecNdAc5ctZTN-YEYHX7T8VQb0cVclc0dYdRZ6ZgNjXbXTUkVIcDbtcwdYdNdgZ9ZLZSMfWfT1Ufb3cscydZdddpZwZrY5YLL3TmUEbacPdBdPdtdqVwU3UsUuUaLogApopmpWqWp7qcVmV4VyVSUrhlZKrbr3rvtItItWd_dpeJdwdVrouCfZowpVqZqzr2d9eLeIeXdzr3uWq-fooUpRp5qleNeuebe_fIr9u2rYqGgjoko5pze2eie5fYfWsdvjsDrKp-hip0p6epfCfIfZfYsdvts7rwqlryhzp2exfAfPfAfQsmv5t5svrWrrraiPNPYHX7YBXiTuZjUSbbbgcNcRcaZzNOXIXZXXULZ_UPcMb1cecpcTZOY5NNW1WlTdZUVFblb2cacSdAZUY2YSMxWJT2Y3UHb1cLcdcvchZGZKYiXoLvTaYKUFbccWckcodGU1VGUIUUUMKoWXgAnvnun_nzoabKbWbCajZqXvVOrKnWoFo8pUpxVRVZV0VYUvhqtuYZqWrBsLsVs_dWdqdcdrdLpto2tOfRoJpFpwqudgd5d2d-dnp6p-tYqEfuoRoVpIeIeeecefeZqCq6ulq1pchIohpfdveeeMeNedqhrauxrhqgqahMpweKepe3eieiqfrWwFs1rArYroh3M4W3W7XcXbTdZbZNT1avbpbhbuYsMdXJWfW2ThZTZVTvbVbucLcRY8Y4MRWkWhTiZAZUUTbfb1bccJZDYiXmMgVvTTX3YeUxbGbzbdbrYgYOXmXILwTpXuX6UIbcbobhcFT8UOUnTeT3J2WZYQgAlZl7mHl9a6a5aNZsZGXWVWkgrGn_oQpBo8a3araxakZ9Zal3VnqSnTnspFpiUmUyVHVCUfhntzsxXpqCrVrNsDdDdGdDcgdenjppo-swfIoGoWpldCdidYdmdMoPqmpht7pYgAoBpOdtd2dfdwdRodrUqDt8qKp8gKpGdnebdldodpobqyq2uvrLqrqyhKLkW3WcWgW2SiX5YcYeS1aVaRaoYPLzWlWBWNSmY-YmYTTIa5bBbLYOX8LzV0VSS-YOYnYuTga8a5blYKXtXCLmVVS4X1X0YpTabDagbRX8XrW3WNLUSjW4XRYGUFa7a9bQS1TsTuUNTMI_WpYRamgAjujgj-aKadZlZSYeXhU8jUkIrJnvocoVaWahapZ4Y0ZUlBVOjxqinYn8omZ8aUaDaNZzb5lzlVVopyminen2ToUHUAUZU8hqtlstrqXqqNqMrKb_cnc8ctczlzpbpAn6shfGoKpPb8c9cxcrcwl3qbqNoysmpkf3pTcDdcdLc8dDl0qBqgputwqoq2gPKmVsVrV8VjRBYNYBXpXGSPZgaCXiKwVvVUVGRrYXYEX4X0SpaWarXQW9KfU1UcR5XgYVX2YASuaIaJXRXEWGKWUFSKW4XRXeXqSraDa7XRW4WKV6KUSVWcXBXLX5TUaaajRtSYSeStS5H3VpYAaEcRgAhihwZVZrYvYTXzWwUJinjFkgrOn5oEZDZpZyZCYlZIj5VGiqjrqunOn6ZbZlZVZYYzbIlKknVCjQpfmUnRY5ZSZVY8Zqd6mDlOklVho9lzmcSzTMTNTwT4hfuAssr1rYXQp1rCbbb_cHbtb0jYpTpHocnnsdfGo4bzcRb-b8cAjupwpspDoItsqtffKdV7VrVmVQRZXnXtX9XUXQR6ZiXWK4VwVYVURrYIYTYTYWX3SqasXaW-KrU6UdRuXNYBYJX7X5SuacXRXHWkKdUbSMW5XaYRXiYKS-aCXXXBWEV1KXSBWkW6XKX5X3TRagSESUSlSrS_HtWEYMZ4cfedgAh2ZOZiY1YOYFW9T9iGjOj3k1sLnuZdZ_ZeY9YaZLj4UdivjgkxrfoAZvaDZfZ3ZKbDkpkZU8jCj5qVnXYzZqZ3ZiZkddljlGkqVbjdpomXZZZ8ZvaCZggBmamAlilRWUppnBSmS_TOTiUOhpuxtvtAr1scXnrUbUcPcEb6bmjhpfp1pLoUostafWKFVwVkVgVPQ-XiXyX-W4XuXyRsXbKhVVVUVDRTXzX-X6X7YKYRSsW6WsKNUqUaRkW_X9XWYBYWYMSQXJWyWOKMUAR9WpXEX-X2YDYDSlXBWaV3VnKTSBWNWKXcYMXzYLS7R1SRSISTSrHqVjXlaCcBePeJgAZBZlZDYDXwXJUNiGjQjhk1lMsMZFZVZsYpYnY-jpUnhtigkAk6r2ZWZeZcZVZAa4k0jpU8iejmkerAYeZnZvZWZidllpkakVVZi0jYqQY0ZrZbZxZYf8mUl2lKkkWPjyqdZDaAZ4ZwaIfznQmhmZlSliWHqeSjTJTVTTTthju5ugt3s5tQs9XwEJPwQTQ5RYSvefoToBm1ncndnrQmSTiRi1idjltdmRmPmFmemympRIkuSNiRiHjHsqmjmGmfmbnBmTRhkukSSHhqikr7mOmUl7mXmsmQR1kqkWjjR3iKrGlBlpmTmXmlmWTkltlPkvj5ScqZk1lFl1mqmxm-gAwLvYuJtQsqS2qHrPsMteuAuUqWo2okofninDs4cElimantodpcqmocouo_oTngtwoCcHlzmcnWoOpaogofotouoRuno2n_culhmanUpyoco4o2ogpBvsqIo2oXdinCnkp0pEpJpNospSw6rHp-o0pDd-n2qJpIpJpBpEo9xKrxqgqGqpqZejHdO4VtVZU_ViO7X4YCYAX-YxYSPUD7P6QmRFSZeboFn8n_oQoaoGWoQeRzh0iBjXsIm6mCl2mbmZmmWSRZkIRlhVi3rilUmNl0lymZmIWoRykDjlRWiYqok9lYmHmEmDmuWyS9lBkZkDSBqHkplGlimUmdmaP0gAuot6tKsvTAp_qsrbsstlt4ZJqnosoKnJnAtNbpl1mFnDn6ohZmqVoTo3n1nPt1nvb-lqmMnRoEZMqUoXogoQn5uiopnmctllmNneZuqLoqoZoNobvmpioznzdUmnnBZxqdo6pBoXonwhq1pgoypFeBnjaBq4pKozozo5wjrhqopyqDqSeSIpUSP-VtWEWgPwZMYvY3ZZZIZIVLIVO_VaU4VrP8Y9ZFZEZqZjZMQLPkFIQqRUScecosoSoOojogolXIWORYSJhzi3sWmxnHmxm6nBmzW5WcRlkhRtiHrFlpmUm0mdnEm2X1W_SxlgkhSnqNk9lymanQnKm8QnRXgAustzsyT8q7qtrLsftstpaLaSq3o_oMnUticnmCmsnrodo4adaJq-pgo3nztcoScul4m3npobaSaUqko4pRoZuZo_oJdTl9mlnwadalqmpepIpWvepzo1n9eDnEn4bIaqq_pppXpEwOq0p7pSpPeinuazbXq4pkprp-wcsAquqHptqbfBKSVBVMQsW1XUQ3ZbaDZpZwaRaAWZJpUMQNWEW6RYZfZnZsaLaTaBWIVSJDQCVGV7QkZiZ4ZqZ1aaaWRUQZQtGGRHS8eUodo3ohooo2ooX1W4WRR4SOi6rvmRm-n0ncnknvYvXwW0Tmk7ScqtlcmTmtnsnxn8R2SFRTgAuetRVNq7rOrJsatMtobQava5q5oooOtDcvmtmonvoypubfbLa_rTpUouuHpGd2mHm2oQooa4bYbMrJpqpOuGpmoJeVlynEn2bTbWbmqpp7qHu_qPpXodeQnBngbWcDbQrip1qCwerOqGo6pwe-n8brbgbjrcp6qlwKsJrBqEqMqef6K-V5V6VmRUYAR6ZyabaYasaeasXRK4VLU_Q4XaSPaGaFbMa4bJbDW2WKJ4UvRGXRRlaJaJa6atbfbIW0VuVQI0QrWVRBZyahbBaya_bRR8Q4RfQoHZSveVoWo0o3oypFo-ZoYjXuXNTVS0rUmVm5nhoMn6oPSvS1SMRhgAuDV0qeq0sCr0s0tjbYbMblbFrBpAtadFnJngoYpMqKbkbtbzcLq4pQtTpaecmsnRoNpPcNcWcKcFrTp0utqMpDe4l-nCoEcHcQcKcHrQqrufqfptolffnan9cWcccXcRrdq2vsrbqipnpegEnqcAcKczcxrgqiwIsfrYqCqgqTf4LqVtWrW4WhSYSfarambGbNbObTXMLfWEV_WGRUSsaMajarbhbXbyXqWoK1VhVlRnSZa3bBbwbqbpb7X1XVWWKLUsRkRwaVa6bNblbkb5YAWuWrVdJSQtRZaCatbgb7cCb_S-SSSlSLRdIOeaoQopoepPpCo2TVTQTNSuR8gAWmrBq4rlsRsbstb5bycFbbbPq-t0dvnhn1ovpXqfcUbvb6cwcUrHtvp-eUm_nlojpBc1cWcrcudQrDuHqgpnfInDnxoIcfc5dPdNdqrsu5rAqSpKgIoIn2c9c5dFdNdYrfvNsCq9ppqkgboHdAdMdYdjc7rfvZs5rwqoqPqhgaMxh4hZhkhfisp7rCrMqAqcqyqxjXMIgygzhLiLqtrIqbqkrUrSrYjuipMIgugphdpRrlqzq_rNrFrmjOjKiNL6gchRoOqvrgqzrCrjrZjbi2igh7MBglnoqurErUrNrorhkRjCjfjDipLbm1qxqprDr2sCrytJs_sDqyqLpZgA0b1U2B3R4V4WtRtltftctPtB3m0L0Oz00e1G2Gt4thtrtrtZtm4p2q0LzCzf0S1HsYtKtbtYtmtR5e2j1sz7yPzB0DsqtOtktqtWuE6p3G2W0-zzzCzzsxtltztWt1uW7u3t2i1X1r0R0dsot8tbt7uGuG7v453y2b2m3I0TOoYzYtYyYJYfVJU6cYb3cmdJc4adOEXUX-X_YnVEVccIcNcodZddaIZMOBXYXTX3UkVccDcPctc-dNaLZxZCNiXeXiUiVTcMcidFdec4ZyaAY7YrMbWqUaVCb-cndIeDdwaPaDZUYtYjL4UkU1bfcrdYd5d5V4WAVEVEVhU-LkgAnPnjn2oPojWMWYWkWVVbVlhmZPq1rFrRsMseeVeKdreGdfdgpos4fWodpApwqkd-eLeieleCeQp_tMqRgMoKoRpxebedegelezfQqMtqrMpdgzpAp1fTfmfTfyfkfmqfu1roqmq2hqqYe9fHfAfRfkfwrMvTsrrlrMsQiENnYTYNX9XxYKUCZzU0bpcUcqc9ZeNTXrXqXrYOURZgUbbhcUcJcuZ7ZFNhXIXSXXUuaHUxb2cHcvcJZmYvY9NHWmWmTzY-U9btb3cwcaZhZRY3X5MfWCUfYuU8bycHc4c3ZqZjY7YYX1LfUIYpU5b3c6cxcvUwVTVSUxVLVHKrYwgAlMlhmXmIbzbxblauZ1aOZiVVqQncnoorpWVdVkV0WKV6Vbhcs4Y9pzpwrbrBd-dFdUdgdhd6nRpFsffZnvoUpJd6dseGd0eQeUn5pjs0ppgAotpLereueweBeze3oLqWuGqRqkhSpQekevexeAekeooVrQt9q3qrrGhjMlXeXXXDXIXGS-Y1ZZToaybdbUZBMTXlXDXRXPT3ZSY8Tua-bxcbZIYrMyWkWQWzTmZNZIUKbubzcEY5Y9YVMXVzWhTqYuZWUPbWbwbpYrYTYXXnL_VsTZYGYnU6bLcQcYYsY2YMX0XCLnUQX6YAU2bfcIceTzUkU0U2T9UaJ-YcazgAjvkPkga4awa9aXZ3ZkZiVVjlqMmrn1pGbGapaibKaIZ0bblgVdphm1nUofUBUlVFVCVsVuhnsprzYAo_qJqScldxdFdaczduleozoorYfIoGovcydrdydndudmmKp5pJs3qWgtordGd6dmd8d4domPqqqRsfqwqfgMLiW3WjWNWkWTSKYGYqX3S4axarYKLPWOWBWCWkStYSYVYTTPa9blYKX-LhV9VlV_S4YjYkYWTjbIa9YHYIXrLdVOVlSXX-YrX2Tsa5bQXxXqXPWzLaVATSXXYEYKT8bIbCYCYOXrW1WZLHS3XDXvYQUxbKbKShTTTgTlULTuIuYJaecQgAiOifZ1Z7aXaBY1YQZOU8iWj4qFnRoqaKZ7aNaSZxZCbklGU4jSpim1ntZcaHaHaAZ7Z4d2lRk9VnoLlwmaTpTtUTUeUxVnhlsmr1q1XrqCqbcBc_c-dAc7dIkUpcojnmsyfoojcRc3c6dActdEkHqFpPoisjqUf1KXVvV3VVVdVxRNXlXvXCXBRvZ3XLKYVbVHVdVbRjXNXjXkXtSjaRXMXIK0VYVPVHR6X2XzYKX6SyaZXCW3XGKeUtU1SGXPXSXmX7S3aHXGWZW4V5KMULSbWrXkXaXlTNZ4XOXaWZWLV2J_S3WrW-XjYGT0azR_SaSTSzTLTkHqXwZobwdxgAhnZFZFZcYfYTX-YtUJhui5j0qDnaZeZBZaZhY_YbbKjnUVh6jPpPmpYdZaY-ZEY-YtdlkckWU9iIogl6Y2ZVZnZiZQZkfQlbklkUVupLmCTNS9TTTlTwUfhrtDrwqurIW4p9bOcVbwcjcFb-jTpCocn1nqsifTKrV-VpVLVdVwRPXrXyXKXNX2R0XTKdVeVWVMVZR0XiXyX0X5YPSWXUXMKhVRU-U4SEYDXrX3XxYJStXCW3WjKYURUXR0XPYNXOX6YCSuXNXBW3VvKDUJSWWYXLXwYHYITYW6W1WdWDVoKGSpWOXDXqX7YRTzRrSHSWSXScTSHpXcZ3bfdgeYgAZIY9ZWYyYTX3YlT2hSiXjckIq_ZsZPZQZOY3YebAjWUsh-i0jqqSZFZYZRZWZnZNdKj5jrU8iTjVpQZKZYZZZgZuZvfTlCkbjkVhjbpGZPaBZzZ2ZqZ0gHl4lok0lbWQpqSrTJTQTeT7Urhktls4r3sQsMXyEEQMQJQuRcTWUgehmVlPlalVlsRCSKidiuiykBkvtbmcmqmbm5m6RKkqR-hxhaiQjktVmJmNmTmbmxRjk-j8SOhIiXjcsxmhmGmEmMmxR7k1jmjnR-hTiIrjlumTmfmWmUTwmFkgkIjwS3iAqulIlpm8mim6Vpm2l0kvknkGSupzkMlHmKm6m3gAwewIvAuUtksVTpqhrdsTteukomo9ofownwnimjs3b_lVmtngosnaomovo9pEoqnMuXoHcpmBm6nRnZo_oloZoZpNogu5pJoKdGnQn7nzo1orouo8oto-wSp3pKpCd1oQoHpqpTpKpJplpzxVq_qEqnqdefHuPXVvVmVMWbWHPGX_X6YDYwYsPfEVQGQZRLStUreZmMmOmNmRmoWyQnRnhohxi5j4tNmhl_mDmfmiWnRNjWRghcikjDsOmDmFmRmIm0W7R2j3jXR0hhigrTlpmNmWmjmVXFTfkykjjaSJiWqmlUlemWmAmqXJVYltlQkzkNSapnkOlPmEm6nCPhgAwEu9tzs2sSTkpzq0r4s2t8ZYoepBoqn7nunEsmcJlgmmnHogZcolosoPo8n3oCtPoCcwlXmsndZnoponogokopoautoxoDdFmdn_Zxoro8olovojpivoqEo-pBdpoGaeovpIpHpGpTpew8rQprp_qVecIJTqPHVdVIWOVxPWYIXrYSYTYpUmHoO9UvUqVSWCPVYEYNYPYbZIPZP8EIQRRGSkTgeamLmQl6l8miWdVzRCR1hEiSi4scmcmimamkmdWWVuRhjRRkhaiOrNmCmgmgmRmTXHWmTJkTjTR0h2qLlOlWmNmhmTXbXTVIlGkaj6SgpbkalClomjmpP3P7gAuktqshsKTXqDqSr2sutzZkZcoLpHnnnjnDsMcElmmwnXoWZ6ZkoVoYoqn6nctUoBcfldmInQZSZ-oHojomojoAuIpBnadTmpnVZ7aAoiouo2oqpQvnpjoupIdun4aJa4oxpMo3pFpDwRqqp0p6qEePI2UhUVP8V_W1WZQgZIY_Y-ZQZnVbI6TqP3VfWCWTQBYvY-ZLZqZoVKU7IoPJUyVlWSQfY0ZBZBZaaMQYQWPjFSRNScUIecmtmZmFmnm9XAWqVgSKSWh5jUrpmWnBm2mwnNX8XFWYTPkGSDiPqnlbmHm9nCnWXgX1XAVGk6kkSjpqlRlol-ngnNQ_RCRbgAudtIskUsqkqXrSsotyawaqaSoypBoWm_tedNl4mknxocaAZ8aToSpeo3nvtQoXdIlymZnXamaVaUovo9ppovtzo6oHd4mrnzbDa3a3oYpUphpkvlp2ozpNeMn9axbDappVpnpyphwUrAp6qLqNfdJ5U5VXVIQVXpXnRXZgZ1Z1ZmaKWSJuUpUfRAWtXhRTZeaBZ-aUamWNVZJtTrQHWIW2RgZWaMZxaMaOWUVcUxJPQXVdWeQpZeaLZ8aFapRkRrQNQ9GSSnUTeWmnmyminCnEYYX-XIWlTcSriqrQmCnLnanlnYYdY2XzXXU-kwSwqkmKmInKnsnsRrSMSVRigAtxs6VFqSqxrNsJs-a-afauaioyo2nzsgd2mimtn7ovbPbqbXbVospJodtkoweWmSm1oAa6bCbVbCpPp9pYtlppoVeumznubybubvb2pVqGpqusqOpMpbfToWblb_bqb4pvqSqTv6rXqDqSqggAKxWQV6V-V6ReXoR0aGZ-aOaranWyLBVlV6VlRnYBR9aTaZajasbJXAWzKyVBUSQlXQSfaSaHa5a3a_XSW2VyKCUURQWxR3ZyaBana_a0W6WtVvVOJIQ_WLRgZraxbSaybOR0SVRdSERsHcUXeVmlmrm3m0nBY8Y_YrXxW_VBS-qalxmbnvoBoISbTJTeS3SOgAtHWLpQqNrrrrsjbPa8bpbUbIopoTs4dtmLnXocpBa9bsb4b5bxo2pLs9pBegmpmjnmbwcIcUcUclpSp5uMpzo5fYnLnlb1cqcNcOcdpKqkuCqppEpWfpnycFcyciclcypzq2vRrmqkqkqmgSLrWvW5W_W0W7SqS_aza4arb8bjYKL_VWWuWmWhSfTBawawbYbUblYLWoLdVVVgV_RnTRaVaubJbTbjXtXSWvK2VSVxSuSnasaybSbqbuXuXfW8WVKAVAR7SgaJbYbHbybvYOXqXCWqV6JOR9SRaIa-cGcHcWTHSySdS8SlSLIZeZmdmdmxnSnaTqTtT1TbTFS4gAWtptp2qHrorXb6b-bqb2bhbWoqsWdqnAncospFbqcHbucQcncVpIsUpNeYmPnXoFcncfchc0c5dNpKsuqJo5fNnKnsdGdFdFdedieBqBuVrApwpdgiogc7c8dLdWdqdwpmunrgqTqorCgiMShShQhQhPiqiVqLq9qIqAqeqzjNMjg2hFgmhwijqIq5qzrArEriilicMWfqfsgwhzpurAqcqxqjrPi4iGhjMOf0gshTpSq0quqcqzrMivihhbhqMEgBguoLqnrGqwq7rJkEjhiVifhbLrgmnmqYqxq5rirYj7kWjYjQi6iQL0mwqqqqrDr2sJsWsbsorTq6p0pSgA0W1H2U3P4jtXs_s_thsrsfs33i0bz-0o0j1Mscs7sts0tMtdtJ392fz6zCzk0EshtOsos7tCtrte5T251pz1zt0IsRtNs9tbtHtot8623X152J0S0Vs8twtNtNtzuJuc77372k2p3C0UOWZDYgYpYiY4YuUwVhcPcfdAdta4OwY0YdX6YvYeVEVVcHc3dLdwaQaDN0XfXkYjYcVbVicbcbc9dbZ_ZzYtN6W0XtYRUoVzcZclcpdzaSZ-ZaYYNcXOXcVKVacEcnc2deauZ_aLZjYpMmXPVpVtcOdVdQeSadaKZ9ZSY2YeLxVKVvcadpeRetVeWMV8VbVtWvWSLpgAlIl2mNmcWaWkWOWlWeWFWphmY9pXpvp-rOeDeEdwdkeFeDefnYrdf0nxoopNeFe0eGeFeWfCe7n6r4pUgeoVpCexe-e2e7ejfVfwoFsRqCpugnpLfVfjfGfcflfvhBo6twrErIq-iJNXYAYKXhX5YJYCTdZpUTbIbtcAZzNYX_XjX1YUX_UGZvUxbucBc0ZmZmNNXhXdX0YAUVaAVXbgcScjZUZPZWNgWxXaXeVDZsVFcJb_cuZKZfYyYWNGWbXHUTZUVub3cXcjZUZgZDY7YJMkWqU-YsVdcUcfdfZlZ6ZTZXYfYKMLU6YjVzcHdGdoUiVLVtVoVOVyWJK4a3gAj7kckhbjbwbTbsa5acaHb6Vto-mOnKoFVNVnVoV4WZWlWohlrEY1omompvcjd9dSdcdkdxdhlun_qifwoNojdjeHdweMeTe1ezmApVrCpwg3oed1eweyepevenfNmhqDsYqdqjhKMYXrW0XDXBXKXCTAZVYVTha_bXZEMlXTW6XEXFXHTPZDZaUEbWbZYhZAMVWiW1XAXOTnYgYzUFbqb0YtYfX1McWTWiXAT9ZdZPUibScGY5YCYgXhMLVzWnULYnZCU2bVbpY0Y0YUXzX_L_VmT0YTYnVRbOb_YSY8YUYQXnXQLhUuYXZUV6cLcjTsUHUJUtUyUUV4JraJcEgAiKixajbFa7a7ajZyZ-bjVAiwoambnMaPaZanapbFakaddskKVln5lmmVUfU-U3U5VnWVWXhprFqAYioopyczdUc9dIdLdReSkFoTnarFfVoWdKdud5dmd6d9ejkopFoOsIqCggLGWwWXWSWPWIWLSDYtX8X7SWaOXxLnWWWYV-WTV_SdYZYUYaTHbhXwXrLpWBVUVqWRTCYSYGYYTZa-YCXuXhLFVjVxWAS1YYYkYET3bJX1XmXoXCLUVuVmTEYLYzYcUPbnX_X2XWXiWzLCVMTqW6YDYxUgbFXiYFXiXNWzWoK5TzXUYKYuV8b3ShTJTRTXT2UUUXIwZybjd1gAiJZwZ-aHaCZwZUY7bRUbhri3o6moZEaTaBZ0alZeZldZjgVWiGn7lXZeaPZ-aRaea1aaftkcjWVmoGlyTYUET-UXU1VQWjhsrIqkqaYDpuchc4c_dbdDdLdskEoinrn0sPf7KPVxVkVqVJVXVZQ-X0W_XOXXSBXdKjVxVoVXVoVERcXnXaX3YFSgW2XKKTU_U4VPViRoXZXLX0XeSoXIW8WSKbUgUWU3RwXXXwXnYXSyWjW_WhV8KIUVUsSJXNYDXnX4TLXTW_XBWFV0KMUJTAWdXZYFX_UJWjXeXHWRV1VgJ5ThWpW5XVYlVARbSDSMSNTBTcUoHcZjbedOd2gAZQZVY5ZDY8YbYLasUNhHhyi2ouYgZCZUZCZrY-Yzc-ixUthahrn6YtZFZCZHZXZLZoewjnieU0iNoLY8ZiZoZdZcZnaUfMkbj4kAV2oRSyS_TZTmUQUzVrherTqPqPqmXgD4PuQVRERZS3UjWYehi1jGjGjTQzSKiwiOi4jdkKkStZmemcmUmyQ9krR8hjhtiqjfkJtcmImAmjmURcksjuR_gnhoiijftfmFmHmEmbSVkfjrifR3hFiOjGsXmZl7mam3T9mDkej1jQSZiCiprZmDmkmQmpVZmZlikgkbjrSHhqqik5l1mhmTXZmnmblPlBkwkFSoplkclcmPmvgAwNwYv6uuuQtEr_TTqMreszthk3otonosoYoNncm0tGbvlfmgnalApBozotolo6oFnduEn3cjmhnllRpNpAopocospOoevEo7oudLn2lTpCo5oyoYo9o2puwbpwpnqEdyH6PDVoVfVpWwWFWDPDYKYIYnYfPjEMQVQoRiSaUMWLefjpj9j8j9W8RESDhxh8jJjikStAmkm1mpmhWfRSj-R0hMh8icjFtdl4mJmcmNWnSEjqi0SDhciWjUsEmcmbmEmlXlThlJj-jUSkh0iVrNlrmal8mhXjVql2k0kSkQSeh1qblWmEm-mwXCXhmjlVlglDkBTApbkPk6mBmqPygAv4wEuZuLtCsDTbp6rDsZtUZYlzo7oiouoCnlmksvcDl6monlZkmOpAoooio0ocnotvoVchmonmaEmMo4opoloWpToNu0o-pLd3n-aNmToyoboqozo0pMwDqPp-qPeKINUTPHVxVsWLWMWEPmYVYTY_YoU8H9PDU-VHV0WLVuPSYCYgYmY2PtQQEeQMRVSZUGWYeZj0kQjukOWUV4RGRsgwhhiljWs8mOmcmKmmWgV_Rxi9Rshdh8jZr1memgmRmbXZXFTijyjfSTh3ijq4l8mqmgmjXRXsVBlAkMkFSUiUqLldlymlmvXgW-X0ltlRkWkVTApxkslEl4nGPnQHgAvVustfscsNUFprq5sAs6ZWZRlzpBpAn4nTnDsXcXlfm6nhZyZmmGpAo4o-oXnqtpn0dHmgntZ7aTl-pBpIo4pBo0umpXpTeCnvaTahmPpVo3pZpFpevvpqqLqHeeIBULT6OpVuWFWPWHPZYaYhYoYsVJH3TOPEUZVZWHV4PkYEYgYlYyUfT3HxPlT-UyVVV1PiX1YFY1YfPdPrP2ETRLSbUFWMeejqjejnkKW4V3VIRtRfhfiTi1r0mJmLmJmVXkWmV_TmjKSchoiUq9lymnmImqXAXIWfUsj0jPSUh5p1k1ltmemxXPXVW4XNldkrkJSepakTlEl9m8QFP7QqgAt9tCsZrrT7peqrrosWZpZvZ1l7oxoHndm7sBcAlamgnQZwZzZpmNobpAoZnqs2nvdCmhnJaVaJaGmIo_odoooguKpIpCdindaSaHZ8mAospKpGpbvRpyp5qcejI_U4UkUcP0XFW-XCQKZgZDZgZrV1JLULTwQGWqWpWbQUZeZGZWZfVoUtI2TEQFVuWPWrQiY1ZZZaZlVpUzUJIgPfU3VkWWQ9Y9Y4ZSZjQZQgQtPnFaSpUPWOeckekYkdkYYAXUWrWATXSdiMi0rgmMnMm1m_XsYKXIWrVHjrSmigqFl3mOnAnIYPYEYYW-XNk3keTUphlGlcmPnDRRRmRTSCgAt3tHrrU5p5qArbsJamamaYaqmdown_nUsudRlsmenpazavaXaYmYpjown9smoBeHmQnZa3alavaomipmpSomtlpIpJeinabGbWbIbBmkplpbpWu7pvqRqkfBJ-V8VcU9VZQnXdXJRBZMZyZ4Z2WgKLVGVaU5RCXiXaRbZhaDaOaUWgWgJ5UkUeQ9W2XZRYZuZ8Z-aWWXVeVVJfTgQKWJXJRgZraTaCaUWMVmVnUUI_QiVuWFRMZvZrZzaeRdRpRhQ7ReGpUIWSeYkGk3k8lHYfYwYMXRWvU4SZifqkmLm9nknhYdYRYcXpXJXWkpTgp6ljmNmrnkRvR0SgS9SIgAsisGV0pRqhqbrrbKbDaxaybNmdoMnsrndCl4m6nCbdbWbZbebvmmpBoftLo1ehmqnfbCbsbTbMbTmyqDpItHpIo_e-nlbacEb5bib_mtpjqAuWqEp-qBfQLJWZWCWlWaWIRjYMSRZ_aMa8bPXpLEWIVKWLVxRnX_SJaCaabBa7XUXTLJVnVaVrRxYXSXabZ9axarXNWkWWKtU0U8RMXTSuZwaObJauXEXGWlVcJ4UrRkW7SIacajauazXeXOWgV-VUJHRpXJSMaMa1bWbLSPSKSjR4SsSQHWWXejkkkbk1k_ZcY7Y8ZAYMXsXVTIpWl4mBnEn0S7S9TjTmS4TdgAroWVo2pTqqqgbHbybLa9bybmmOn8rhdvmImxnYcDcDb1bkb2cRnFonrzoTeinCntcFc0cVckcvcsnHpetAo8pQgAnscbcXcXcccPdBnKqbtWqTpyqYfUL_XTW8WgWkW-WxSMSraWanbXb5YmLxWUWWWvWnWzSVTNbBa5bUcLYIXsLtVuV9WWWvS8TEagajbEbsXyXoWLLpVIV1WOSiTPZ-apatbnX1XMXCWOLCVbV-SuTFaja9bScbYSXwX0WpWXJ3VBSxTOaqbYbmcWX9YQXtW5WlWBJVTHTHafa5cYcpTITZTzShTfTHTpIdeZkFkckulTUAT8TyUUUUT5UXgAWzoPo7pRqWcAcLbxbncTcHcCmPrFdql8m7necNccb7cXcZclc0m4rMoZebmdnbcxcrcdcec4dcdtnArxo1pCfSn4dcdedTc7d-d2ejnktHpzpxpng3MbhehYg1g_h9iQiMqCqAqBqmqmi9MigwgWgbhJiDiKpUqmqnrDrFi0h-MefmfogohViUpcqYqsq-qwimh6hSMZepfhgAhMpTqMqqqkqMi8iKhDgQMOfpggg4omq2qbqSqpj4jDiPhhgiMFgXguoWqXq9rDrDj4kBjRiJhjhrL0gpnCqirHrqrTkAj2j7iyiJiSiVLknCqSq_rkryssskr6sErGqLpqpMgA0I1W2Z3psQs_sdsaswstsis03M0Qz00o0rsYs_tLsosrtItCtM4i2v0M0N0msms7svsosktLtxt45j2t220U0kswtFs1s4tItdt_uG6u3L3P3W0HOOZQYyYcYUYnY0Y5UxU3brcEcvayOLYqYHYCYhYnYwVLVccacgc-asaQOXX0XvYcYfYeVYVjcPcpc8aFaeaPOLWwXuYcYZVmWDcjcdc7aVZzZxYcN3XDXWYBVIWlcZcwdIapaQZ3ZMYwN7XrX2V9WNcvc9dhaMaVaHZ4ZTZAM9XiWMWecteFeBaqafaZaHZdZ0Y_MBWoXBdPeUe4VzWFWUWhWGWuXJXwL3gAjUkEklV_WkWdWsXVXVXpYLhmZpnenXoUdcdveDeKdweleofKlgppf6nZoPeGehegePehe6fugNlzpwpVgnn8eDfIfUe2e0fBfugymdqTp-pmg_NQX6YRXxX6YPXsX4T0Y_UBbacIZWNMX4XsXgXtYNXnUbZzVAb3cMZuZTNhXMXXXHXkYPUdZeVCcFcGZTZFZLNEW1W7XpXuU6ZPVFbicTZgZQZIYeNFWuXRXSVJZwVobgcVZ5ZlZFY4YKNHWuW6UqZdWgcGcZZjZzZIZJYuYaMgW_WPZKWdcwdLZSZZZPZbZSYoYjLXWQZxXldIeNUhU8VGVUV_VeWsXEKpcrgAiQiuatbLbObCbYbFata8d3Vhm2lDmGVTVlV-VyWXXYXGYEhnotZXnioAdJdddmd1dkeGeUeskMmXpmfsnkdkeWeMeBeTeffUf_klnDp4pNghMbXoXNW4WrXFW_XIS3X2YqTfbHZFMQXNWTWpW4XEW_S6Y4Y1UEbUYjYqMSWeWfWwXEXFTQZAYsUDbjYrYLYhLyWKWYWpWlThYpYvUWbXYgYyYMXmMMWgWOWqUKY1Y_UwbqY9YvYaXsX3LyWGWPUyYhZrVqbhYpYuYWXvXyXcLtWPUkYrZKWwcVYfY4YoYOYEXjXTLcWBY1ZkXFdJTMTmT_UXUkVkVVWuJmb7dvgAiQZqahaPaea9auaIaRdbVBhYmylUaMalbBaca4bKbPbTfUiuVkm8krUbU5VQU_V9WPXqYFhhpOpIYZn7crdQc9c-dpdtd7e7jwmSmqp0fcLOWkWaV9WNWfWOWQRlXRXpX2S7YLK-WXWGV2WOWDWASeX5YaYgTQYUXcLVWAVzV9V2WFR6YDYNYcT1XvXRXKK0VSVQV0WJS4YLX6YjTWXiXzXHWfLLVTVrVnSwYPYqYWUPYAX9XSXNWzLQVaVRT8YJYuYoU_XxX7XkXXWwW-K4VbU-XgYSZWVtXTXfXpXjXQW-W6KzUxX6YzZXXRSeSrTFTpT2UUVfVpIWbadRdvgAZNZxZzZ1Z7ZtZfZkc_UTgJhJnPZMZ1Z5Z1ZrawZ_akfCiHU1hVmvZxaCaGZ6aWaoa5bNfaimi2VbnGTgT5UEUUUvVhWYYEhrpWpSpQXwFXQpRKRoSNUBVWXeZoeWhuh-h8RbTJi3i8igkAkfkdkEtonYnanuSClYTAiFh3jRjpkWkLtWm6nUnbSflRj8TVhAilipjUkIs_m1m3nSS1kPjsjGS0hQh4ixjNs-mumamqU0l3k8j6jGTkhyifi8sXnGnMnhWlmzltlHjyjKTniBiBr-mjnim6YlmjmFl_kwlCkVTjh8qylwm7nfbImnmpmWlZk1k4j_TvqAlSmVmygAwUwJwKvivEuQtUsPVCrmsitQj0pkpppLorpepAodnzttc0nxo7j1p0p7pno7pepWpPoOvGqPdiooj7qHp1pSpQpWpcqCpNwVrIrPemHmOuVmVnVGWDWFV-V-OuXkX0XyPWEKQPQ1Q9SzUmWQYveah9h3iMWxQuRrhwhmibjxkqkKtUmympmjWYRrjySGg2iAinjckespmdmLnAWGSLjpi9R2gzhniUjSsvmnmNmeXiUNkhkFinSghRiGi5r4mtmVmYXfVrlrknjpjpS1h0i6ral4mlmnXZXambmDkVkTj4TEh7qYlmlsm9XSaMmumQlZk8kNj0TApbk0lemOPrgAvwvevUu-t1s7r0UOqdrUsJY5j0pFoxoPo6oUncnIsbcumfnzY4kMpdo7oUpBpLoYnwt2pTden2Zij3pHo4oioipTpqonuwqFqOdaH5TrOtV-VWWbV6WJWQOtX1X5YVU6H6PYVVVKVsWRWVV2PfYYYAY2PVP-EbQpRMScUdWVYkeeh2iJiKWjWlROR_hHh5iojgj8s6mSmvmoWNViRyitRqg4hiimjWshmlmAmcXtXMT2j8jMSVhkiJi8r_mqmImQXgXoVbkzj1jUSkhdirq6l4nBmuXQXTXqlskokHkRTSiPqXlYl-mrXYXEaMmKlnlOk0kOTipikxlwmMP2QPgAvRvPuXttspsKUip8rIsBYuZtj0pgoupSoBnum5smcPm2niZlZ9j-pWosozpbo3n3tQpMdfn2ZLaJkQpfoxo1o4paoru3puqSeSIPT3T3O_VwWcWJWTV2PmXUYEYJUiILTSPdVEV1WrWjWmPzYYYbZGUqUbIAPnUXVZV-WOWePpYbYsYwPlP1P3EtQ3S6UKWOYqeWhyiNh0WfWMVQRuRmguh3ibi8sVmLmvmlXlW7WGThi2SNhAiBjfrmnDmdmpXSXfXHU2j6jRSnhaifq9l_m7mpXCXwXnXtkqkGjvTLibqHlWmLm9XTXdW-aElVlNlCkYTlpTk9lhmKP1QhQugAvHuXs5snrXUipIqtrVZaaBaCjyo6o6oJnnnisWdDmWnfY5ZsZvkMo5pFpboMoDtJo7d1nmaBaeZ2j7oypWpBpZopuDqSqCeYIOUETuTgO1WZWIWJWLPlX7X5YGU7IEThTJPNV2WWWIV1P0YUYbZCUvUMH_SfPRVIVvWGV1PvYOYsYjUkUFTYIIPeUbU0VnWTQNYhYNYmPaP9PkP-EdSdTXV3YdeehxhoiEXOXQWMVhStSOg3iYihrDmVmbmdXRXvWuWVUsivSZh9ieqTmEnBmYW7XDXVWhXTkOjYSzh6pmk6lamUXnXRW_XOZikykNjsTPoqknlCmEQdQrQwQ4gAtrsgrmrBUroqp6rdY2Z7Z4ZijloVoHncmxrsdBminUZnZ3aEZmjzo1pfoUnlsopKdOnoZUaWaJaMkAorompQoOtyp4p_dqJCUgUkUiUSPqWPWvXDQEYkYiZAVUJPUeT8T1QKW_WwWeQlZJZeZmVqVrJLTzTmQZWAWyW9QsZIZjZcVuVlUzJATHQgVYWWWxRPZIZZZGVOU4UpTzIRPiVRVvV8RlZAZXZeQdQ_RARAQlFiUCWFYceViFiiiaXuYGXmWxWLU8SuhviFqRmHnSmyXVYIYFXIW2XJjqSih8palbmhnBXyX9YHX4XPZikZj4TSoqk6lRmSQ7RBRoRoSUgAs3r-rEVBpEpMqYZ5a-apaaadkKoooDnNrzd1mzniaGa8atala5kSphpEn3sDoxdsnSZ6bYawbKa0kqpEpgoftApcp_ePKEVoVcVdVBVVQjXYXURLYxZfZZWjJzVdVWVMVJRJXoXURHZSaMZ-W3WdKHUUUqU5RcXZXeR2ZhaLafWlWOVqJ8T6UcRPW6XyRzZnaQaWWdV4V6VaJsTyQWWPW_SoZvaGZ_XFWjVvVWUqJTRJWBWWSaZ8acaWRYRdRmR5RSR4GhWAYueYiJiai1YzX9YjYQXiW0W3S2hgpXlimanMYjYaYsYiYAXzZxj9TdoWlSl3mgRvSKSSTGTfTIgArnqtV4oDpPpWava1asbJbRbQkHoEnUqndzmdneaubkbobVbTbvkwpDoUr3o0evnaajbibebsb4buk_pno4r6pipyfOKzWqWHVxVqWEWDRiYCR8ZwaIajXrLFWKVzVmWWWTSAYESJaEaNbZXMW2KvVlVOVpV1SEYLSZZiaQbEXEXaWmKuVHVGV9SJYVStaRaYbDXFXOWUWEKpUoU1RpXTTOZ4aha3W6XQWwWnV_J0UnSnXBTSaxa5blXJXWXAWZVzVfJcSzW6TWaubjcGRoSwSrSvSbTCTrICYneaiTimjBZLZbY8ZEYrYTYDZwTLn0lDlumbSrTETWTYUZUBUYgAp_WtnPn5o8arb3bWbqbhcNb_kJnGp9domlnVbPcDbfcbb-cSdQkongqMoafKnFb-cncccncrcvdelUoUr2pkpMf6MIWvXLWfWfXBWvWnSZS-Z_apa9X2LxWtWoWXW0XIWaSoS7aWbCbdYOX-L7WdWEWeXRWuSiTAawavbBYFXjXSLgVHWQWhWkTjTuaWabbNXvXdXOV4LSVLVuWZSlTfalatbSYMYWXjXTWrLCV5V7TPUVbabVbqYAYZX2X2W8WYKTVuTgUMbCbpcUX4X9X-XoXPW-WyJgUiU7b1cfdOS5TQToT-TRUYUeU6IzeZiIikjATwULT1UoU-U7VSWAgAXJmimynCa7bncCcKbjcfcwdJj-osdxl3mCbQcccacfcLc7dgdvkrpMnvemmScSdCcscRc6dieHeklGptoUomfiMJhGg6hLgRhhhHiAihoYqiqJqii_MZgagLf_g3hdhsh3pYqeq9rJijhvMPfyfCgng9iKhypAqWqnqpiqh6gkMUeYfZgahEhspDqYqUqYiKhGgdf2L-edfOf4gypBqNqNqijJiOiShWgFMOfcgRg3oVqeqkqmjRjSishqhHg3MEfzgmn_qYrCrDjWjPjgi3hphfhnMFgLnKqaqprSkQj8joj_iui9iQiVLvmWqeq-rsq9rxrdrdrUq-qHpSo2gAz11D2Ksxs5swsbsBsys5stsv270L1H1Xs3s0tCtBsYsjtKtYtS4H360J1rsytKs3s3sgs8tXtkuB5R4F4H0gNlYrYhYfYpYTY7YcYsTpT7b2cQaZOVYiYZYdYhZIYaYnVIVicVcmaeahOZXvX9YPYoY_YVVJVzcSdAaBaKZzOUXgYBYwYdYhVuVucjcraDZpZ5Z1OHWwX4Y0YeVxWycac0ZuaJZvZwY3OHXbXuX5VyXCcidLaeaaaCaNaBY8NwX1YQXAX0d3dsZ-aoaiaNZtZWZwM9YOXZYGd5elagaFagalaTaHZ3aDMLYhZJenf2UZViWDW3XVW7X8YwZdMKgAh1ikUzWWWdXIXUYIYqZNZ1hsZnl1mddxeZeId9eaeYfPfegej7oGf6mhd8emfEewetedfMgUhvkhoVoNhAMgX2XsXnXnX4X9X8XzTBZPTpbUZeNZYGX-XPX0YAYDXfT4Z7UhcTZBZjNeXqXbXvX5YbYDUkZZU-b5ZJZLY6NNW4XhW-X0YBUtZwVFbyZTZIYiY8NRXJXGXwX5VJZ0Vub_ZRZnZDZHYZNCXGXqXpVzaMWXcnZlZyZaY7Y9YOM-XuXrV2aPXfcqZFZTZ3ZmZKZcYoMbXXXZaZYEeUZfZXZFZfZhZFZOZELXYoa8ZNe2TdUrU3VSWFWzWwYGZNK8eKgAh8a_bjbmbLbicPbkcHcjfWV2lMj_UQVWVxWEWZXNYwZBaOhqnGZClqdbdadvd1dreZerf4gXkQlYoGgGLVXEXFXEWwXFWyWgXDSDYNYfSxYkMbW1XAWsXMXWW5W1S_ZLZJT7YvYeMSWyWsW9XFXiW-TdY6Y2UPYbYcYQMZWKW4WlWlW8TnZKZgUsYUX7YZYGLyWLWpWRXIUDY5ZZUyZAY7Y7YhXoMUWMW3WaU1ZjZoVvYrYhYPYJX7X3L8WOW2VtZlaFWvYuYiYvYoX_YZX6L7WyWQZqaoYFYlYaYeYvYWY9YnYhLUXrZ5arYwSvT2T-UqUiVnWpXDY9J1dbeDgAZ7a2aobCaxbDbTbZbsevUxf9liaNaYaoaqbLbAbwb3ctfYhIV8lgTVUqVIVeVrWNXeZEaGhhnRnqYWFEQQQ1RDSOTpVJXIZbaleYgPgQRETCiyjCi6jnkBkakflRuFnZnURTliSvhoh7iujckZj_kxtUnonASHkgj6S4g2hzifjgkTkptcnGnOS9k_jtjUTJg7iAiajXk_slm5nDUhl1khkFi5S_hJh3i9kAtMmmnLWNmRliksj4jgTVhkiFjasWnJm1YmmYmtlZlFkPjYTeh6jcrgmhnSa_mbmNmPlMkij8jyTnijqslzmzcLnGnRmlnJmGlQlUlETOrMlAmEgAwlwPv8v9v7vMuUtOtVVPsjtTiGqEpipQpVpOpKozoSoBvpdmogiNqJpgpqpApwpFqFpBoiwiq8eNHcOQVmVPVMV9WRV3V7VfO1XNXqPBELQDQoRlSnUsWfYia5edgUgbW-QkR3iBhpiZjCjxj6khtZmfmuWQRKj3RxghiAiyjPkAjysymfmcWgSMjtiwRshShtiSjekHs2mNmWXZThkzjbjGSUhdhhidjYszmDmUXjV0lakpjvjGSxhiiTiOsSmqmnXAXWmBlqk9j3jgSxhLiCrBlwm6W-ZxmZmMlQkpj8jjTAiQqalamKWbcLmSl-mElBlKkIkYTGppkclJPagAv9vovzvkuzt5s3sKUQrGsbZEh4pGovogoVpHobnTnFuAcsnwYniIpGpLofogotpGoonwu_qIdtHqTZOiVLVOV-V7WHWHVNO6XhXoUfHsOsU8U7VeWeWOV4V0PjYoYdPEP3EIQjRZSIUTWlY1a3edgSgYWhV7RFRtgqhriKjVkGkNs8memNWQVsSEi5SMg1iFiwjNkRssm7mIXUWzTijUi_R_hGhjinjDsymQmkXHXVVZkZj1iwSbhfh5i6rsmYmmXaXYX4lrkqjrjeTXh5itrImBm9XMW_Z5mWlokmkKkES0h8qBk-mGWWW6cLl9mHlWlTkpj9TPpikZlXPwQCgAvuvNvEuSttslrTU0qwr7Y_ZwiNo_o5oyo0obnUnJtZdhn1ZHaFiXpPoroYo0pCn_nfubqEeEH9T7TlOYVXWLWIV5WNVkPKXpX1VBH6TCPBVEVnWQWcWFVqPNYJYyUhUGH-POUKU2V0W1WNWHPmYZYYPAPaPtEZQ8SFUBWRYsa2eaf9gtWkWDVERxR7grhxigjPj8sSmWm_W1WiV8TGi1RwgnhgiZjSsPl9mOXJXmWhVWj4iySVhaiLilrhmdmfXmXfXcXQk9jrjLTEh6ijrGlum4XSXXW_ZylnkhkbjoTXh1qNljmKW0XOWfcNmdllk2kVj1Tko3k0k9QDQXQRgAvdvVuKtNsnrmUpqTrdZVZzZNiFo5o2oxn9n7nGtJdhn9ZeZ6aTiTpIo4ooo4oUn3uXqHd_IJTuTfTvOkWNWKWGWUVsPaYPY0UpIXTWTHPUVyWvWNWHWhP7YjY7UzUZIMStPRUnWEWYV8WFP9YOYqUyUQTgH9PRUXVGVrWKWbQKYaY7PJPxPoQNEjSVTlWAX6a6eRgFgKXgWjVzVSTLR8gphmizjMsHmfmnXfXyW3WEUviVSphMhvjMrOmvmRXmXbXZXCWwjajGS9hpibqYlhmoXaXdXHXkZnkQkJjmTUiPpolHmUXUXwXRXFcalikukekcT-orkdlOQCQMQyQigAvKtqtJrpq-Uwp9rNZjZzaRZmh6oxpHobnqmrscdinJZ8aTaMadiUotoko1ocnYtfqGeLH7TvUBT5TlOhV8V6WPVUPVX9X1UnIKTrTPTpO_V1WIV-WIPvYjY4UrUgH3TDShPJVOWeWLWTP8YZYzUZUGT9H4SEPUU-VYWKVsP0YXYkUOUbTrTEHzQAUXU4VYVwQeYZYePXPVQCP4QDEbTiV9XwaMegf-gDW-XkWpV4VUUTR7gvhriRqYmbmQWyXWXcWWWCWtiySUg9iOpqlKm0XFXLXBW_WcZZjujaS3haonk1lPWhXFWtXFXqb1kvjyjgTNn3jwk8QEQbQ7QqQ1gAtIsJrLqTUrpaqaZLZ0Z2ZzZvh2odoFnImCrrdOm4ZeaAZ_aHaRiHoBpLoXm8s2pndyJIU2UnUWUaUQPdW1W7WLP7YuZGVoIsUgUPUCUpQEWUWUWoQZZNZVVmVfI6UBT7T7P5W2WpWZQ9ZIZeV5VLU7IzS8TQQdWRWsWeRSZVZGVsU3UtUZISS0QhVgV3WqRUZwZbVvVhUzUaUAIjQcVFVZWkR_ZlZrQTQZQhRARgRGFWVzYGaheagvgsXfXlX_XQWnWGW1ShhEiepollmXX6XjXoXmXPW-Y6jLS9hXo5kwmAW_XrX-X2X4XXb4kAjPTGnVkbksQzRMRtR1SVS3gAr6q7puVBpBo4Z9bEaqaxapajiwnvnImWr3dimkZ3a2a1auaoa-iXoxoPnLrupJeLJuVhVfVHU5VAVEQHW4WfRMZGZXW4J_VQVaU9VLVdRFXfXbRMZiaRWOWbJdUaU5UrVYQxXFWxRtZ0ZrWOWeV6JqUMUdUpRQXaXVR_Z3aTWSWNVdVeJoTzUaR4WtXjSaZbaeWZWZVmVzVBJQT8RaWeW_TTZ_aJV3WdWMVwVgU_I5SVWcXMTZaka9RGRSR3SMSaRzTRGsYFaReWgShPYiYXYVYVYCXgXYZHSzg1n7kslbXiYjYRYYYjX8X7b2i2TSmyj4kmRrSGSSSyS2T2UFgApyo3VwnlowaEbXa3a-a3bdb4iXnKmJqTeEmyarblbgb1bocMcMjFn_nDrqo0fFKrWoVsV1VsWRWFWDROXBR_ZxZ9XPKvVzV8VsV9VkWERlX5SSaTaUXYW8K0VWVXV5WMWPR_X-SXZ9aQXNWvWyKeUxVLVvVxSTXiSmZ9afW9WoWXWVK5UzVlVySRYSTHaba0W-XEWnWRV4KdU1VKSEYFUKada1XJXMXKWoWSVtJpUzTLXXUKbabkW2XOW-XFWWWMV2JGUHYAU6bjcYR7SQSWTJTZS0UMUzHdafeYgrg9YMY3ZGYdZOYyYrY5cBTQmKjckTSxTITaTYUWU0VEWNgAnoWgmKm8avbcbwblb1cUchcqiQlBoyd5lrbdcObkbxb-cAceeMjPmKpgn3e4K5XFWwWlWXXDWpWtXGRMRtaWaQYZMVWxW5WYWcWhWiXKSfSzaubAXqXtMCWZV6WgW4WvW8SjTYaabUYCYMXwMJWHV-WyXKXUTPT0a7bEXiXSXWXOLmVPWWW9WlT4T6aibIX7X1XNXZWTLhWBWjWnTeUnaubbXoYMYCXiXaW1LBWiWWUnVKbrcbX1X8YlX4XqXGXGKWWrVdV_cpdhYIXqYLYQX-XKXsXmJQWWXSdRd4SSTkTZTpUTUMVYWCXTJEeTgphQSqT1UsUZVBVsWRXIYXgAXik5lXbgcSb5cccTcRddd2ehiTnCelknbxcjclcRdDcodheYfnjTnbm1fsL6g1gpgpgDhDhehTh8hKocqEp-iYMMgBf0fZgehVhVhRhlpOqRqYh4hfMJfce-fPgihchPhapIqLp_iHhYg2MDd1fBfugOhWhioxp2qSh1g-ghfuL_ecfFf9gjhSocpvpnighfhNgZgGLzede3f_g5ovprpwidirh8hvggf3MMfMf_g3oUqRqei5i6isiHhRgngyMKfhgPndqZrLjcjei4i9h4hehdhkLzgFmoqbrKjLjRjwi8i-iKiMiXiOL0mYqJrOqwrvrLrWrPrUq-qPpfodgA0z17sesssesXsBsLsmtCsnsZ4G0J1KsysusnsbsZsLsitdtUsq5W35z-MWX9X7XcXrXhXZXkXlWnSdTSbHZNNAXhXoXkXpXyXYXuXsTyUgcJZZZQNFXHXDXOXdYTX5XuUIUibtZKZQZANGXQXWXoXfXzXmUsVBb6ZUYvZIYkMzXCW-XbXoYKVfVqb4ZkZPY8YvYWNMWLXeX-X1WKWWcNY9ZYY7Y-YlX3M9W_XSX5V9W0ckYvZiZWZUZMY0Y1MSXqXyXXX5dyZeZXZfZeZvZVY9ZiLyYmYdZDeqYOZgZJZpZdZMZiZaaIK4aKazgCTcU5VPVsWCWlW-YaZ1bGLMgAiSTvU-VjWUWiXYYDYuZ2cHhjZDixdIdNdldjdzeNekfdguiSj6kSf4LHXCW5XIWoW1WWWuWxV4R_YQSQYEMBWuW4WnW6XEXLWxWfS6ZDTyYOYdMCWnWuWyWuW4WyWwTLY6TyX3YEX-MLWIWVWtW9W3W7TOYvUkYhYdYDXsL5WhW3WqWyXEUsZDU5YkYaYOYCXoL5WFWgWxWwU9Y-ViYbY-YHYfYCYJMMWKW0XQVkZ9W5YEYAYqYMYRYaYTL3W9XcWNaNX0YaYZYSY2YmYgYSYkLZXwX_bUZQXEYMYdYgYrYdYhYqZ9KoZicAadSsTkUEUiUyVlXHXPZDaoKEdtgAZuaoaVaraibKbecBc0eLfdVbheTCUMU0UnV0WkX0ZOaGbuhjjdYMElQMQhRBRtTqUvXNZbahcVedgCRBSli3ioibjMjyjYj-k9lBtnncRTk7SmiJhoi6i_kDjxkvlItdnQRtknkFSvg6h8ijjSjZkSketnnFSgkrkLjOSWhOhkiciwkckWs6mlUflWk_kGjJTGhWiQiSkDkktZm8WLmOk3kpjpjCTOgshUjNj-symwYMmOmEk8kNkKi5TuhOicjMsnnDaul7mElqlIk9j6jOTZh5i2rkmOcKnHmanGmYl5lRkwkvTIiOrvlyd5m7nAmqmcm0mCl7lQkfThsQmRgAwjwWwLviwDv0vHuEuHunVjt6iNpnpnpWpPpZpBpeowoNojwqeLHQN5U7VSVXV1VsVoVuU1U4OnXgOuDpPhQURYSkUIWbYaamcGedgPWMQXRRhqhXioi9j3jlj0kgtsmhWIQ7j0RuhAh0h8i2j1jpkNtimwWQRhjQiyRngthuiNjPjnj3tEmeXIThkaj-jASVg9hhiJjCkAtAl_W7VilVj8jjjGSagZhRiUjAtCl-XKXUl_lIkRjVi6SyhBh4irr7mdWyZzlsl2lakTjLjUTEheiirGl9WLbzmCmTmIlDkbj8jjTLhmqplnV7eHmPmMmMmLk7kokjjtTTrBlXPcgAwNvnv8vdvguytssxtRUyskYniOpJpKotoVoNoon-nmoFvXdPHVTcOYU0VQWBViV0V1U4V3OuXxUJHVOhU2UeV3WUVxVyV9V5PMX6OgO_D0QQQlSiT6WhYea6cSeXgUWcWHQWRlghhOiTiojsj4kHtBmjV-VdRmikRkg0hVipjKjxj2tAmzWyW-TRjlitRxg3hzigjOj4sxmHW2XFVAkvjoi6SMgshPiNjBssmMXUXDXdlIkQjyi6TChJiPjCsBmXW_XHaBl5lQksjqjiTQhfiZqvl5WEWicBmQl7lSkXkgjlS9h3qOlXWdW5dymylumJlVlIkPkGThqclqPpPygAvkvqvYvmujtRsvs-VBsRY8Z7iDo8ooo8oYo2oBnhn4umdpHsTiS9OXVoWUV1VqWUVZVVPPX9UwHmS6OtUqVyV2WMWFWJV4PgYSUXT-HhOxUQUyVfWUV0WDV8PtYEPDPGPUEKQjSUTkV_YaaccTeagGWIV9U9R1RjgxhYiIjXj4jzswm1XTWmVxTPi6R7gmhyiPjUkSsdmPWyW-WWUdjuiySpgNh-iYi_samJXRXaXRXnkJjxihSkhEhzi3romiXWXWW-Z3lXkzjbjhTXhwiKrAmFWYXEWpbzmZlakqjkjgS-iCp7lVWvXQXAd6mZmMlOlBkajjToprlUP0QYQbgAviu2u3t_tpsKs8UursY6Z3Zbh-o0oyouo_oanbnguXdXICTvTnTQOXWHV6WPWdWEV-PYXsUdH8TFTEO6VuVuWDWRWbWWPkYWUiUCH8SJPLVFVaWKVlV9V-PwYeUDUATaHaPHUDVFVtV3V_V-QBYuPSPjPPPeEVSDTnV-YUavcQeYgDXXWsWVVUS6SDgnhiiujPkLrxl3XTXoWoWKUiinSKgbhMiRjEsPmVXDXQXJWrWqjiidS4hchsi0rKmjXjXaW3XAZdksjQjHTbheibqClpXEXrXTXGcMlGkskBj0Tnhlpmk0WqXfXGXGeFmQlWlIkKjsT-pdldQdQDQVQdgAupuktqsjsFsBVRrqZXaZZYaGiEoqoQowoPnHnkttd9HxUPUFTmTUOpVQVpWGVlVpPWXgUsH4TcThTjOpV5WSWBWJWdP-YkVMUzIBTBSyPEVrWgV_WEWMP6Y6VOUYT-H0R9PhVFVoWEVpWVQVYmUdUNT2TBHiPpUMU-VeWcWcQXYZPLPaPOQEQbEkTiVeXiaIcneWgMWtXYW7V9VJUgRpgZhIiZi3rgmLXSXcXVWeV5W1h-SXgqhKiuqvmYXTXpXHXiWZZNjTijS0hFh5pwlXWhW-XMW6XKbtkQjtjETchnoyk_WxXqXNXJXOeJlckijrjuT0onk1P8QiQnRJRWgAt9s7r6qwrUVMqQZFaXaGaMZ1iWoUosn-nKnts2dhHzTgUATeT2TrOUVdV1VdVRPjYGUxHzTXTuTJTtPCVwVmVxWHP6YuUlUhHrTDTITEPFV_VvV6VdQAYRUqUeUbH1SqSZPXVlV4VpV5QhYYUaUaUFTRHmSMPYUiVaVvWDQqYrUnUYUMTjS0HSQSUlUrVkWsROYvPFPePxPhQTQyERVgX0Z1breUf4XBWdWvWbWVVbV-SDgPhMhtpclrWxWsW-XXWtV8Y4iSSOgRhroVlGWpW0WkWkWgWebPivifS1gwnPkPW1W4XLXOW4XidPkHjeiiTZn8khQLQfQZRIRbSCgAryrKqKqDUfpNZEZ_Z9ZjaAaMh7oQnXmfmurtdmIfUpUjUrUUUwT6PKWQVZWAQMYmVrI4UkUKUMUXUZP3WUWVWsQUZLVTVHInT2T9UTT_QPV6WLWxQrZTVfVqU_JBTiUIUDP4WcWVWrRZZHU6VFVCUDIqTXTOQiWLWjWsRjZWVbVKUuUvUTIhTEROV8VyW4SQZeU4VKVLUxUkT9ISRKVpWGWjS8aHPtQXQYQaRTR9RqFJX6Z_b6eTgzXhXyXLXfXZW3WhY_SHfyhTn6kyWwXnXIXzXrW7W8bXiQSnghm-kIXMXkXkYCXkX6YQdojViJS9nRj-Q4RNRcSASVTEUNgAqXpOpjVPo2aKauatawbHbPbpifm3mHmGrWd6JlVWVtVLVCVYVJU2QEV_WqQ4Y_WYJpU8U1UtVJVSU-QhXBXIRkZgWwWEJ-UxUaUrVDVBQ5W6XcR1ZmWJV4V_JeUVUvUXU-Q-W3W8RwZyWMVvVfVCJtUPUcUkRrXSXJSmZxWFWIVoVkVPJLUPUeSDXNXjS_ZmWBWfWEV5VdVCJdUXR5W2XcUPaXWIV7WcWJVxVWU_IoTuWqXsU3bkQ7RLRZR1SaS4S_UOGcaMbzeeglXxYPYIX8YaYIXrYfbUStfhlxjSXtYsYrYEYVY3Y3Y1dvheTYmJjLR7STSuSWTcUFU1VogAn7oHWCmYaybQbKbJbLbobuc6iblVlUo8d2J3VsV8VzV4WQVvV_WZQAXEQtZuXILQVqVzVuWAV6V6V3RjX2SJabXNW7KxVpVTV0VvWHVoRUYASOabXBW4WrK_VDVZV0V6V2SZYCS7aFWhWMWWWCKxVIVAVkV1SoX_TJadXLW0XFWpWVKsVaVfV1TZYYUKatXLXNWtXFWYWWKoVZVuTIYZVRbLW1XBXRXMWzW7WPKGV9U9YlVbcHXEXBWoW3W3W3XDXKJSWPZoWxdZQ5SJSvS2TXT8UIVzWzH4cEeVgnX-Y6Y2Y5ZUZ9ZpZ2a-dsTmj4h0R4TOTQT1T6VPV1WxYEgAmIWvk5a7bqbmb_bqcIcqdyeliXjdnNeiJoVxWBVeVwVrVkVkV6UyQVQiZNWtKlV2VpVmWDV2VxWAV0RFSFaBXIWoKnVaVGVZV6WLVzV5R4SIZ7WsW5WWKrVSVMVZVpWOV0SNSjaPWbWWWtWMKiVKVlV2VdWJSwTJaWW4WyW3WXWZKCUNVlWDWbTiTjadW8W6WwWPWhVbKUVJVbVpTNU3akW9W-W3WyWkWpWiJ2WRWPU6Vlb_XRW0WsW9W2XAWvW9JJWqWZW3dJVwWsWzXEW1XOXLXlYQIFX5Y5e3QWR_SmS2TjUUUIVsXNY9H5ecgiRYSuTBTDT-UrV8WcX4Z3gAWXhKaybnbrbYb7cLcTd0etgeicjMeNLwgYgQgPgJgcgngphcgwgyoHp-h4MJfwfyfXf6g5gXgqgjhCo1qChWhRLyfJerfQfmgfgpghg2ohqKhrhJgPLzd5exfbgDgmgwgooop8hQg4gAfGLtecenfIgCgtgpoRpliChVhFgUfdLreMezf1gIg5oYp4iBh-hdhBf7fkLueVetfSgXpHpviKiWiRhzgsgWfdLtfYfIgqn8qJi0iIh9idhdhBf_gtLrfYgTnmqkidihigiKixiThQg1hZL2gFm9qDiZjTieieidixidh7iGhaL2m8qkqcrNq-rRquqzrgqwp9pQpogA1rsSsQrzsMrrsGsFspsQskss5JzgLAW0WvWqWvXRWZWtW3VpV6RgSUYZLzWrWXWTWzW2WiW1WpWhS1TOX9XzL8WWWVWeWmWlW2WgWrTOTyYXYUXhL8V6WeWzWxXDW1WxTqUFX0XzXdXoL2VoWEWIWtW2WeUXUPYgYbYEX0XnMDWJWPW5WsXHUrVhYJYcYRYDYVX4LiVnWvXUXcWCWVXvX5YHYCXpYNXfLqW0XhXpWRXuYJYBYQYiYlYaYTYHLbYDYbYEY5XXYJYJYZYXYtYlY6ZtKUZeaVafXfYPYKYCY2ZHZbZNaUbYK1dOehSFTbTuUTUVVvWyXJZnbGe1KUgASeUOUiVGVSWWXVYlZ6cJfrhlX8EQPwQVQeRgTQU2WxZFakcTciecQ3SZioiuiOjWkMjcj6kkkflCt1Q1lCSgh5h1itjUjljZkPkhkytlRekuj4SLhAiAiZjAjckLkgkXtUSckmjxiSSahPhtiPiXj9kskhtPUDljkmj4ipSohOh1iYj8kMkrtcV2l-lMkUj_i_TXhChbi5jukxtUX4lhl2lOkaj6jETDgqiKi1jetNaslylsltk5kljkijTPh8ibjUsfcEmdm0l-mrmFlckBjtTNiDiksqdynYm4mhmDmhmIlUkikOTNi3s9dynYnDnFmom6m7l1lNlElNTtthgAw6wfwJvgwJv1wDvKvYvlvsV8G7NtU9UZUvV0VtVVVkVIVLVQOKObDbPZPkQnSFUKV_YUapcAcVeUVzQBQ6hhhXiZjPj8jnkBkAj3tOVnQxjqRXguhfiNi_jJjwj5kOteWLRujfiyRShBhih-i_jMjvj-spW8TNknjaisR0g_hWhkijjujws2W3VHkokfj1izSDg4hQiFjIjqs2WVXQlHk8kAjNjDSPgchPiRjHtAW9Zslel4kpj7joihS6g3hpivsGV4cIl2lhlpknkdjYi9S1hZilrVV2d3l6mFlsl_lJkajxjcTRiyrzWYdxmEmIlmlomAlRkvkVkYTvrxPFgAwMwBvlvuviviuqt3uLubU7HPS4N-U0VDVvV3VsVqVGVJVPO-T9HSORUkURVcV7VrVyVxVqV8PYOoOvDiPuQ9R0UBWKYRaJcZcAeaVxVVQlRRgvhziOiwjnjnjpj-tWWMVPRTi1QvglhIhzixj-jsj7tGXGWDTFjqihRlgwhIiai0kBj7sqW2W1VHkcjMinSkg_hOiZjFkPsvWsW3XOlWkVjdi0Syg5hNiGjAsmXGXNZwmDk3kGjoisTKgrhzjCr7WKW4bvmJl2lPkhjjjTTIg7iQq3WfW5dolslzmAlKkfkbjaTYiarLWYW2d8mkmnl5mClSk1kZkUUMrdPgPzgAv8vhvWvEvHudtdt0t-VGHRTLTZN7VKVvViVlV4VSVgVAPLUWHVSwOkUYVaV_V6WIVmV2V5PbT2TVHFOoTtUwVXVlV2V6VnVwPkOrO6PODpQbR4T4VyYoaVcbcCebWJVnUZQ6RWhBhRiBi5j1jnjatFW-WYV8Ssi8R0g_hdiXjDkDkFssW-XMWbUjjOicSEguh_iDi_jcshW1W4WzWqkHjaipSygjhWiZiksZXNXkWqZ_k-kdjjjETHhJh-jBrrWtXHWgcElzk1kTjYjuTIhPiKqhWVW0Wwdslil4lRkKkOjuTkicrYWpW1XDeBl5lzmclPk2kAknTzq5P2P-QDgAvSvbvTvAuRtZtft4VXHxThTYS-ORVyVtWAWOVfVbVbPRUOHpSWSvO5VRV7VwV1WYWWWEPbUlTSHaSRObUxVdV4WDWGV8V6PtT2TaTHHROVUFUtVmV1WNVmWGPzOVO2PBPVEHRsTYVTYLawcBcfedW3WaWDVVSkRUgvhdiWi8j_kZsSW7XMWUWFUfjER5gbhbiHjSj6sEW2W5XIWYWQjNiVSMgahQiFi8rvXnXVXIXTZbkAjwiBS3hLhsiWrQWvXdXOXNb_lLkHjUjFTfhSiUqUW_XgXUW3drlulXkXkBi8TmiMqLWwXSXXXLd7mKl_k4k0kVkEUUqtQfQaQeQtgAu7uguutisysqtPVbHaTtTxTaTIONVlVgVrVcVmV3PSUYH9TZThTGOvWGV6V4WHWVWnPaUSUgHXS5SYOzVaWNVzV2VzWDP3UNUZTnHOR5O9UsVEWBVpWHWHPoUdT8TESqHdPRT_U3VMV_WLWCQsOwO5PQPXPxEUTZVgXkaLcRceecXCXGWBVaVdUgR5gPhXiXi7kBrUWaWsW6WNVtWMiPR2gQhYiCi0rMXCXMWmW1WaZSi-iJSig-hgiSqeWpXdXKWpXUbVkRjQidTDhihmpyWPXfXnXHXSd4lBjzj_jXT0hypbWmXqXDXNXVdplzkwkXj3j0T5ppP2QRQpQkREgAt5uAsusQsQsfVXH-T1T4TxTYT9OaVaV2VRVWV3PQVAHxTZTbTWToPRVjWNV5VwWFP5UqUuHoS5S5TTPIV9V2VxWGWhQVUqUHT-HiSESrPPVNWGVkWAWKQKUWT7UPTJHaSNPZUoVSVuWdWTQoUdUWUPTVSyHbQGUpVNV-WPWgRGO1PcPjP1P3QmEQUzXqZwb4csebWMWhW8WeVsVJWZRje-gyhciTqUXJXLW6W5WkWcY1hcSAgRgriEpnWjWsXHW-XZW7bAihh4SogzhUohW6XSXLXXXbX-dojzjhieTdhboLW-XyXnXRXvXreEkWkRjVjsT6oqQKQdQ7QsRfSGgAs-r2qvrCrVU-HdTrTWTmTPUATPOPViVEVKVvPaUnHvTMTHTVTXT9OlVlVqWIWHPvUDUTHYS1TPTPTfPGVKVHVkWNQBUaUKUIHlSoSUS6PNV8VSV_WGQRUgUJUBTsHeSYSaP0VSVdV2VuQvUiUrURTvTWHGSGP6VJVfWTWKRfUOUeT_T2TgTGHGQsUvVVV6W9SaOqPDPuPrQFQuRYEEXFZebXb7ehWRWzWhWkWpV_VkYbR5fNgAhEn7V9WVWlWmWvWfWYarhbSbfrgHm7V6W5W9XHXKW0XOc6hzhnSigimxWhXXXJXAXPXTXvdgjFiNiLTWnaP8QdQ4Q_RRR_TBgAqZpLpVpUU3IpUvUjUMUDUnUPTzPHVjV7VwQUVRIjT9T9UOUjUtUSPTV7WWWpQfVfV3I4UEUAUBUHUQPzV9WVWvQxVaUqUnIZTbThTsULP6V8WRWdQiVYVCUxUKIjTkTjTzQnWIWkWrRhVhU8U-UwUPIgTQTKRQWRW8W0SIVfVXVRU-UnUPINTUSCVuWwXjTHVAUvVVU_UoUZUfIESPV8W6XdUsPkP8QQQuRERpSpS4FRZibacPeUWyXYXUXWXxXgXHXra5R-eQfol5W-XXYAXrXjXoXwYAcwgYSrfRl5XPYBX-XlXwYBYoZIdkhahSTvmFQ1RVRiRuSdTRUJVmgAohoEoPVLI0VNVkVAVBU0VBUrVMO8WCWsPvWIJzVLU1UvVGVaVdVZQQXSXiRAWOWDJpVBUlU9VHVMVAQmXKXXRfWSVyV7JoUCU1UyUvVQRTXKXMSCVnVlVSVOJPT6UrUUU8RlXHXQSQWMWCV0V-VGJvUpU_U0SPX3XrTGV5WNV4V7V9VXJkUaVITgXdYKUIV7WUWLWFV8VbVsJbU7TnXxYUVwWPVwWVWNWQV7VsWMI0VsY8ZtWpPqRPRIR8SNS_UFUJWSGubebveeXdYPYgYIYnZDY0Y8Z1csTVdtkRXyYZYeYkY4Y1ZgZ4aqdofhTbj2QnSISiSmTNTvVQW0XegAmDmiWcIjU2VBUwUzVFU2UvVJT3O5WiP5VvJkU1UTUiUyVBUjU5UsQdXERJWBV6JbUmUoUaU0VOU3U3QZXJRSWEVnViJiUQUVUuU1VMU3RDXURsV_V3VvVBJvULU6VAU4VDRqXXSFV1V5VhVkVGJTUUUnVUVXSTXTSvVWV8WSVzVfVwJZUzVUVPTcYVTvVYWAWFV0VtVbVXJWU3ViT3YLVwWYWBV0WGVuWBWNWOIwWBWHZVWtU3V6WRVtWHWjWdWbXrH6XqanYuPdRARkRoSgTJURUVWfYkGpcFecXcX6YHYfYbYSZRZ5arcidjTTgUQaR0SLSgTVTvU9WqX7Z8gAhyWBIJUpUxUoUvU2UtUjUvTiTrPFPcVUJMUeUgUGUgU3UpU9U0U3QFQsV-VxJST1USUoUuUpUsUqUvQTRDVjVZU9JiUDUmUTUwVEUmU-Q3RsVxVcVQVJJIUqT-UcU3UqU3RoSJVxWBVpVdVGJjUlUXVNVJVSSlTCVmVtVkVhVsVeI3TvU5VgVrTdTzViVqV7VyVfVZU9I9VBVcV9TwVZV7VwV4VjVbV-VnWYIpWZWyWLWvUwVxVtV9WAWAWNWzXZH4XyX5YVVDV3V7V4V5WYW2XLYIZKIGbtciPVQoRZRoSSTJUSUpXDYyczG2eaQTRkSBSHSwTgUqWrXwZdeNgAVcLigFgEgBfpgBftf8gsgPgMgNnrhSLjfYeuejf-gKf2gCghgXgloXhngyLUefdxesfLgAf3gfgoghoahngcgMLfd0eafCfNgJf9gFgKoOhVgMfje-L5dpeLeSfbgLgPgcoPhyg_gTgWe-LndweIe1fwgggpoPhchtg-gFgHflLsd7ecfzgKgsoNhghjhwgif_ftfdLrd2e1ffgEofiNh1hhhcg-gvgrfIL4fAfegjoPhZilhthniVhwgxgFgdLfe_f5nphyiSh7iAh0iNh0g6hHgTMBgHnzh0iwiWioiCieiZiFiJhdhyMfoDqDrEq5qoqkqorBrIq0pjp-qjgA","nashGrid":[1.0,25.0,0.5],"nashPushBBAnte":{"1":[25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,22.5,20.5,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,22.5,18.5,15.5,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,22.0,18.5,15.5,11.5,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,24.0,12.5,11.5,9.0,25.0,25.0,22.0,24.0,25.0,25.0,25.0,25.0,25.0,25.0,17.5,6.5,5.0,25.0,25.0,17.5,14.5,17.0,18.0,24.5,25.0,25.0,25.0,23.5,11.0,3.5,25.0,25.0,16.5,11.0,9.5,11.0,14.5,22.0,25.0,25.0,25.0,16.5,3.5,25.0,24.0,15.0,10.5,7.5,6.5,6.5,9.0,14.0,25.0,25.0,22.0,9.0,25.0,22.0,14.0,9.5,6.5,4.5,4.0,3.5,3.5,3.5,25.0,17.5,3.0,25.0,20.5,12.5,8.5,6.0,4.5,3.5,3.0,3.0,3.0,2.5,25.0,3.0,25.0,19.5,11.5,8.0,5.5,4.0,3.0,2.5,2.5,2.5,2.0,2.0,25.0],"2":[25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,20.5,15.0,13.0,12.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,15.5,19.0,12.0,10.0,7.5,7.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,23.5,7.5,6.5,5.5,5.0,5.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,12.0,4.5,4.5,4.5,4.0,25.0,15.5,12.0,14.5,21.5,25.0,25.0,25.0,15.5,4.5,4.0,4.0,3.5,25.0,12.0,8.5,6.5,6.0,5.5,25.0,25.0,20.5,4.0,3.5,3.5,3.5,25.0,11.5,6.5,5.5,5.0,4.5,4.0,25.0,25.0,13.0,3.5,3.5,3.0,25.0,11.0,6.5,4.5,4.5,4.0,4.0,3.5,25.0,19.5,3.5,3.0,3.0,25.0,10.0,6.0,4.5,4.0,3.5,3.5,3.5,3.0,25.0,12.0,3.0,3.0,25.0,9.5,5.5,4.5,3.5,3.5,3.0,3.0,3.0,3.0,25.0,3.0,2.5,22.5,8.5,5.0,4.0,3.5,3.0,2.5,2.5,2.5,2.5,2.0,25.0,2.5,21.0,8.0,5.0,4.0,3.5,3.0,2.5,2.0,2.0,2.0,1.5,1.5,25.0],"3":[25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,23.0,22.5,25.0,25.0,25.0,25.0,25.0,25.0,25.0,23.0,13.0,10.0,9.0,8.5,7.5,25.0,25.0,25.0,25.0,25.0,25.0,23.0,7.5,7.0,6.5,5.5,5.5,5.0,25.0,25.0,25.0,25.0,25.0,25.0,23.5,6.5,5.0,5.0,4.5,4.5,4.5,25.0,24.0,23.0,22.5,25.0,25.0,24.0,10.5,4.5,4.0,4.0,4.0,4.0,24.5,10.0,7.5,6.0,6.0,25.0,24.5,13.0,4.5,4.0,3.5,3.5,3.5,21.0,8.5,6.0,5.0,4.5,4.5,25.0,18.0,9.5,4.0,3.5,3.5,3.5,18.5,8.0,5.0,4.5,4.0,4.0,4.0,25.0,12.0,4.0,3.5,3.5,3.0,16.5,7.5,5.0,4.0,4.0,3.5,3.5,3.5,25.0,4.5,4.0,3.5,3.0,17.5,6.5,5.0,4.0,3.5,3.5,3.5,3.5,3.5,25.0,4.0,3.5,3.0,15.5,6.0,4.5,4.0,3.5,3.0,3.0,3.0,3.0,3.0,25.0,3.5,3.0,14.5,6.0,4.5,4.0,3.5,3.0,2.5,2.5,2.5,2.5,2.5,25.0,3.0,13.0,5.5,4.5,3.5,3.5,3.0,2.5,2.5,2.5,2.5,2.0,2.0,25.0],"4":[25.0,25.0,25.0,25.0,25.0,25.0,25.0,22.0,18.0,21.0,17.5,16.5,14.5,25.0,25.0,25.0,25.0,25.0,25.0,16.5,8.5,8.0,7.5,7.0,6.5,6.0,25.0,25.0,25.0,25.0,25.0,22.0,8.0,6.0,5.5,5.5,5.0,5.0,4.5,25.0,22.0,18.5,25.0,25.0,21.5,15.5,5.0,4.5,4.5,4.5,4.5,4.0,25.0,16.5,14.5,15.5,25.0,22.5,16.5,5.0,4.5,4.0,4.0,4.0,4.0,18.0,8.0,6.0,5.5,5.0,25.0,17.0,5.0,4.5,4.0,3.5,3.5,3.5,15.5,7.0,5.5,4.5,4.5,4.5,25.0,8.5,4.5,4.0,3.5,3.5,3.5,13.5,6.5,5.0,4.5,4.0,4.0,4.0,25.0,5.0,4.0,3.5,3.5,3.0,12.0,6.0,4.5,4.0,4.0,3.5,3.5,3.5,25.0,4.5,4.0,3.5,3.0,12.5,5.5,4.5,4.0,3.5,3.5,3.5,3.5,3.5,25.0,4.0,3.5,3.0,11.5,5.5,4.5,4.0,3.5,3.0,3.0,3.0,3.0,3.0,25.0,3.5,3.0,10.5,5.0,4.5,3.5,3.5,3.0,2.5,2.5,2.5,2.5,2.5,21.5,3.0,9.5,5.0,4.0,3.5,3.5,3.0,2.5,2.5,2.5,2.5,2.0,2.0,18.5],"5":[25.0,25.0,25.0,25.0,25.0,24.5,20.5,16.5,14.0,15.0,13.5,12.0,11.0,25.0,25.0,25.0,25.0,25.0,17.5,7.5,7.0,7.0,6.5,6.0,6.0,5.5,25.0,21.5,25.0,25.0,23.5,16.0,6.0,5.5,5.0,5.0,5.0,5.0,4.5,25.0,16.0,11.0,25.0,22.5,15.5,5.5,5.0,4.5,4.5,4.5,4.0,4.0,22.0,9.0,7.0,6.0,25.0,16.5,5.5,5.0,4.5,4.0,4.0,4.0,4.0,14.5,7.0,5.5,5.0,5.0,25.0,7.0,5.0,4.5,4.0,3.5,3.5,3.5,12.5,6.0,5.0,4.5,4.5,4.5,25.0,5.0,4.5,4.0,3.5,3.5,3.5,11.0,6.0,4.5,4.5,4.0,4.0,4.0,25.0,4.5,4.0,3.5,3.5,3.0,9.5,5.5,4.5,4.0,4.0,3.5,3.5,3.5,25.0,4.5,4.0,3.5,3.0,10.0,5.5,4.5,4.0,3.5,3.5,3.5,3.5,3.5,22.5,4.0,3.5,3.0,9.0,5.0,4.5,4.0,3.5,3.0,3.0,3.0,3.0,3.0,19.0,3.5,3.0,8.5,5.0,4.0,3.5,3.5,3.0,2.5,2.5,2.5,2.5,2.5,15.5,3.0,8.0,5.0,4.0,3.5,3.5,3.0,2.5,2.5,2.5,2.5,2.0,2.0,13.5],"6":[25.0,25.0,25.0,25.0,25.0,19.5,15.5,13.0,11.5,12.0,11.0,10.0,9.0,25.0,25.0,25.0,24.0,21.0,8.5,7.0,6.5,6.5,6.0,5.5,5.5,5.5,25.0,16.0,25.0,21.0,18.0,7.0,5.5,5.0,5.0,5.0,5.0,4.5,4.5,24.0,11.0,7.0,25.0,17.0,7.0,5.5,5.0,4.5,4.5,4.5,4.0,4.0,18.0,7.5,6.0,5.5,25.0,9.0,5.5,5.0,4.5,4.0,4.0,4.0,4.0,12.5,6.5,5.5,5.0,5.0,25.0,5.5,5.0,4.5,4.0,3.5,3.5,3.5,10.5,6.0,5.0,4.5,4.5,4.5,25.0,5.0,4.5,4.0,3.5,3.5,3.5,9.5,5.5,4.5,4.0,4.0,4.0,4.0,24.5,4.5,4.0,3.5,3.5,3.0,8.5,5.5,4.5,4.0,4.0,3.5,3.5,3.5,21.0,4.5,4.0,3.5,3.0,8.5,5.0,4.5,4.0,3.5,3.5,3.5,3.5,3.5,17.5,4.0,3.5,3.0,8.0,5.0,4.5,4.0,3.5,3.0,3.0,3.0,3.0,3.0,14.5,3.5,3.0,7.5,5.0,4.0,3.5,3.5,3.0,2.5,2.5,2.5,2.5,2.5,12.0,3.0,7.0,5.0,4.0,3.5,3.5,3.0,2.5,2.5,2.5,2.5,2.0,2.0,10.5],"7":[25.0,25.0,25.0,25.0,24.0,15.5,13.0,11.0,9.5,10.5,9.5,9.0,8.5,25.0,25.0,23.5,19.5,17.0,7.5,6.5,6.0,6.0,6.0,5.5,5.5,5.5,25.0,13.0,25.0,16.0,13.5,6.5,5.5,5.0,5.0,5.0,4.5,4.5,4.5,21.0,8.5,6.5,25.0,12.5,6.0,5.0,5.0,4.5,4.5,4.5,4.0,4.0,15.0,7.0,6.0,5.5,25.0,6.5,5.0,4.5,4.5,4.0,4.0,4.0,4.0,11.0,6.0,5.0,5.0,5.0,25.0,5.5,4.5,4.5,4.0,3.5,3.5,3.5,9.5,5.5,5.0,4.5,4.5,4.0,25.0,5.0,4.5,4.0,3.5,3.5,3.5,8.5,5.5,4.5,4.0,4.0,4.0,4.0,21.0,4.5,4.0,3.5,3.5,3.0,8.0,5.0,4.5,4.0,4.0,3.5,3.5,3.5,18.0,4.5,4.0,3.5,3.0,8.0,5.0,4.5,4.0,3.5,3.5,3.5,3.5,3.5,15.0,4.0,3.5,3.0,7.5,5.0,4.5,4.0,3.5,3.0,3.0,3.0,3.0,3.0,12.5,3.5,3.0,7.0,5.0,4.0,3.5,3.5,3.0,2.5,2.5,2.5,2.5,2.5,10.5,3.0,6.5,5.0,4.0,3.5,3.5,3.0,2.5,2.5,2.5,2.5,2.0,2.0,9.0],"8":[25.0,25.0,25.0,25.0,19.5,13.0,11.5,10.0,9.0,9.0,8.5,8.0,8.0,25.0,25.0,18.5,16.0,13.0,7.0,6.0,6.0,6.0,5.5,5.5,5.5,5.0,25.0,10.5,25.0,12.5,9.5,6.0,5.5,5.0,5.0,5.0,4.5,4.5,4.5,18.5,8.0,6.5,25.0,9.5,6.0,5.0,5.0,4.5,4.5,4.5,4.0,4.0,13.5,7.0,6.0,5.5,25.0,6.0,5.0,4.5,4.5,4.0,4.0,4.0,4.0,10.0,6.0,5.0,5.0,4.5,25.0,5.0,4.5,4.5,4.0,3.5,3.5,3.5,9.0,5.5,5.0,4.5,4.5,4.0,23.0,5.0,4.5,4.0,3.5,3.5,3.5,8.0,5.5,4.5,4.0,4.0,4.0,4.0,18.5,4.5,4.0,3.5,3.5,3.0,7.5,5.0,4.5,4.0,4.0,3.5,3.5,3.5,16.0,4.5,4.0,3.5,3.0,7.5,5.0,4.5,4.0,3.5,3.5,3.5,3.5,3.5,13.5,4.0,3.5,3.0,7.0,5.0,4.5,4.0,3.5,3.0,3.0,3.0,3.0,3.0,11.0,3.5,3.0,6.5,5.0,4.0,3.5,3.5,3.0,2.5,2.5,2.5,2.5,2.5,9.5,3.0,6.5,4.5,4.0,3.5,3.5,3.0,2.5,2.5,2.5,2.5,2.0,2.0,8.5]},"nashPushNoAnte":{"1":[25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,24.5,20.0,19.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,24.0,19.0,13.5,12.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,19.5,16.0,13.5,10.5,8.5,25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,24.0,13.0,10.5,7.5,6.5,25.0,24.5,24.5,25.0,25.0,25.0,25.0,25.0,25.0,13.5,6.5,5.0,3.0,25.0,18.0,13.0,13.5,19.5,20.5,25.0,25.0,25.0,19.5,10.5,2.5,2.5,25.0,15.5,10.0,8.5,9.0,10.5,16.0,25.0,25.0,23.0,13.5,2.5,2.0,25.0,15.0,9.5,6.5,5.5,5.0,7.0,10.5,25.0,25.0,16.0,7.0,2.0,25.0,14.0,8.5,6.0,4.0,3.5,2.5,2.5,2.0,25.0,21.5,13.0,2.0,25.0,13.0,8.0,5.0,3.5,2.5,2.0,2.0,2.0,2.0,25.0,10.5,1.5,25.0,12.0,7.5,5.0,3.0,2.5,2.0,1.5,1.5,1.5,1.5,25.0,1.5,25.0,11.5,7.0,4.5,2.5,2.0,1.5,1.5,1.5,1.5,1.0,1.0,25.0],"2":[25.0,25.0,25.0,25.0,25.0,25.0,25.0,25.0,24.5,25.0,25.0,21.5,20.5,25.0,25.0,25.0,25.0,25.0,25.0,25.0,21.0,14.5,10.0,8.0,7.0,6.5,25.0,25.0,25.0,25.0,25.0,25.0,21.0,7.0,7.0,5.0,4.0,3.5,3.5,25.0,25.0,25.0,25.0,25.0,25.0,22.0,9.5,3.5,3.0,3.0,3.0,2.5,25.0,25.0,21.0,20.5,25.0,25.0,22.0,12.0,3.0,2.5,2.5,2.5,2.5,22.0,8.5,6.5,5.5,10.0,25.0,24.0,14.5,2.5,2.5,2.0,2.0,2.0,19.0,7.0,4.5,3.5,3.0,3.0,25.0,17.0,10.5,2.5,2.0,2.0,2.0,17.0,6.5,3.5,3.0,2.5,2.5,2.5,25.0,12.5,2.5,2.0,2.0,1.5,14.5,6.0,3.5,2.5,2.5,2.5,2.0,2.0,25.0,8.0,2.0,1.5,1.5,16.0,5.5,3.0,2.5,2.5,2.0,2.0,2.0,1.5,25.0,2.0,1.5,1.5,14.0,5.0,3.0,2.5,2.0,2.0,1.5,1.5,1.5,1.5,25.0,1.5,1.0,13.0,4.5,3.0,2.5,2.0,2.0,1.0,1.0,1.0,1.0,1.0,25.0,1.0,12.0,4.0,2.5,2.5,2.0,1.5,1.0,1.0,1.0,1.0,0.0,0.0,25.0],"3":[25.0,25.0,25.0,25.0,25.0,25.0,22.0,18.0,15.0,17.5,16.5,14.0,12.0,25.0,25.0,25.0,25.0,25.0,21.5,15.0,7.0,6.0,5.5,4.5,4.5,4.0,25.0,23.0,25.0,25.0,24.5,18.5,6.0,4.0,3.5,3.5,3.0,3.0,3.0,25.0,21.0,16.5,25.0,24.5,17.5,13.5,3.0,3.0,3.0,2.5,2.5,2.5,23.5,16.5,12.5,12.5,25.0,19.0,14.0,3.0,2.5,2.5,2.5,2.5,2.0,14.5,5.5,4.0,3.5,3.0,25.0,14.0,3.0,2.5,2.5,2.0,2.0,2.0,12.5,4.5,3.5,3.0,2.5,2.5,25.0,8.0,2.5,2.5,2.0,2.0,2.0,10.5,4.5,3.0,2.5,2.5,2.5,2.5,25.0,2.5,2.5,2.0,2.0,1.5,9.5,4.0,3.0,2.5,2.5,2.0,2.0,2.0,25.0,2.5,2.0,2.0,1.5,10.0,3.5,2.5,2.5,2.0,2.0,2.0,2.0,2.0,24.5,2.0,2.0,1.5,9.0,3.5,2.5,2.5,2.0,2.0,1.5,1.5,1.5,1.5,21.5,2.0,1.5,8.0,3.0,2.5,2.0,2.0,1.5,1.5,1.5,1.5,1.5,1.5,18.0,1.5,7.5,3.0,2.5,2.0,2.0,1.5,1.5,1.5,1.5,1.5,1.0,1.0,16.5],"4":[25.0,25.0,25.0,25.0,25.0,18.5,16.0,12.5,10.5,12.0,10.5,9.5,8.0,25.0,25.0,25.0,25.0,20.5,14.5,5.0,5.0,4.5,4.0,4.0,3.5,3.5,25.0,16.5,25.0,20.5,18.0,13.0,4.0,3.0,3.0,3.0,3.0,3.0,2.5,25.0,12.5,10.5,25.0,17.5,12.5,3.5,3.0,2.5,2.5,2.5,2.5,2.5,17.0,9.0,4.5,4.0,25.0,13.0,3.5,3.0,2.5,2.5,2.5,2.5,2.0,10.5,4.5,3.5,3.0,3.0,25.0,9.0,3.0,2.5,2.5,2.0,2.0,2.0,9.0,4.0,3.0,2.5,2.5,2.5,25.0,3.0,2.5,2.5,2.0,2.0,2.0,8.0,3.5,3.0,2.5,2.5,2.5,2.0,22.0,2.5,2.5,2.0,2.0,1.5,6.5,3.5,2.5,2.5,2.0,2.0,2.0,2.0,20.0,2.5,2.0,2.0,1.5,7.0,3.0,2.5,2.5,2.0,2.0,2.0,2.0,2.0,17.0,2.5,2.0,2.0,6.5,3.0,2.5,2.0,2.0,2.0,1.5,1.5,1.5,1.5,15.0,2.0,1.5,6.0,3.0,2.5,2.0,2.0,1.5,1.5,1.5,1.5,1.5,1.5,12.5,1.5,5.5,3.0,2.5,2.0,2.0,1.5,1.5,1.5,1.5,1.5,1.0,1.0,10.0],"5":[25.0,25.0,25.0,25.0,22.0,14.5,12.0,9.5,8.0,8.5,7.5,6.5,6.0,25.0,25.0,22.5,18.5,15.5,10.0,4.5,4.0,4.0,3.5,3.5,3.5,3.0,25.0,12.5,25.0,15.5,13.5,8.5,3.5,3.0,3.0,3.0,3.0,2.5,2.5,18.5,8.5,4.5,25.0,13.0,4.5,3.0,3.0,2.5,2.5,2.5,2.5,2.5,13.0,5.0,4.0,3.5,25.0,8.5,3.0,3.0,2.5,2.5,2.5,2.0,2.0,8.5,4.0,3.0,3.0,3.0,25.0,3.0,3.0,2.5,2.5,2.0,2.0,2.0,7.5,3.5,3.0,2.5,2.5,2.5,22.0,3.0,2.5,2.5,2.0,2.0,2.0,6.5,3.5,2.5,2.5,2.5,2.5,2.0,17.5,2.5,2.5,2.0,2.0,1.5,5.5,3.0,2.5,2.5,2.0,2.0,2.0,2.0,15.0,2.5,2.0,2.0,1.5,5.5,3.0,2.5,2.5,2.0,2.0,2.0,2.0,2.0,13.0,2.5,2.0,2.0,5.0,3.0,2.5,2.0,2.0,2.0,1.5,1.5,1.5,1.5,11.0,2.0,1.5,5.0,3.0,2.5,2.0,2.0,1.5,1.5,1.5,1.5,1.5,1.5,9.0,1.5,4.5,3.0,2.5,2.0,2.0,1.5,1.5,1.5,1.5,1.5,1.0,1.0,7.5],"6":[25.0,25.0,25.0,23.0,17.5,11.5,9.0,7.5,6.5,7.0,6.0,5.5,5.5,25.0,25.0,17.5,14.0,12.5,4.5,4.0,4.0,3.5,3.5,3.5,3.0,3.0,25.0,9.5,25.0,12.0,10.5,4.0,3.5,3.0,3.0,3.0,3.0,2.5,2.5,14.0,5.5,4.0,25.0,9.5,3.5,3.0,3.0,2.5,2.5,2.5,2.5,2.5,10.5,4.5,3.5,3.5,25.0,4.0,3.0,3.0,2.5,2.5,2.5,2.0,2.0,7.5,3.5,3.0,3.0,3.0,22.5,3.0,3.0,2.5,2.5,2.0,2.0,2.0,6.0,3.5,3.0,2.5,2.5,2.5,18.0,3.0,2.5,2.5,2.0,2.0,2.0,5.5,3.0,2.5,2.5,2.5,2.0,2.0,14.5,2.5,2.5,2.0,2.0,1.5,5.0,3.0,2.5,2.5,2.0,2.0,2.0,2.0,12.5,2.5,2.0,2.0,1.5,5.0,3.0,2.5,2.5,2.0,2.0,2.0,2.0,2.0,10.0,2.5,2.0,2.0,4.5,3.0,2.5,2.0,2.0,2.0,1.5,1.5,1.5,1.5,8.5,2.0,1.5,4.5,3.0,2.5,2.0,2.0,1.5,1.5,1.5,1.5,1.5,1.5,7.0,1.5,4.0,3.0,2.5,2.0,2.0,1.5,1.5,1.5,1.5,1.5,1.0,1.0,6.0],"7":[25.0,25.0,25.0,19.5,14.0,9.0,7.5,6.5,5.5,6.0,5.5,5.0,4.5,25.0,25.0,13.0,11.5,9.5,4.5,3.5,3.5,3.5,3.5,3.0,3.0,3.0,21.5,7.5,25.0,9.0,6.5,3.5,3.0,3.0,3.0,3.0,2.5,2.5,2.5,12.5,5.0,4.0,25.0,6.5,3.5,3.0,3.0,2.5,2.5,2.5,2.5,2.5,9.0,4.0,3.5,3.0,25.0,3.5,3.0,2.5,2.5,2.5,2.5,2.0,2.0,6.5,3.5,3.0,3.0,2.5,20.0,3.0,2.5,2.5,2.5,2.0,2.0,2.0,5.5,3.5,3.0,2.5,2.5,2.5,15.5,3.0,2.5,2.5,2.0,2.0,2.0,5.0,3.0,2.5,2.5,2.5,2.0,2.0,12.5,2.5,2.5,2.0,2.0,1.5,4.5,3.0,2.5,2.5,2.0,2.0,2.0,2.0,10.5,2.5,2.0,2.0,1.5,4.5,3.0,2.5,2.0,2.0,2.0,2.0,2.0,2.0,9.0,2.5,2.0,2.0,4.0,3.0,2.5,2.0,2.0,2.0,1.5,1.5,1.5,1.5,7.5,2.0,1.5,4.0,3.0,2.5,2.0,2.0,1.5,1.5,1.5,1.5,1.5,1.5,6.0,1.5,4.0,2.5,2.5,2.0,2.0,1.5,1.5,1.5,1.5,1.5,1.0,1.0,5.0],"8":[25.0,25.0,25.0,17.0,11.5,7.5,6.5,5.5,5.0,5.5,5.0,4.5,4.5,25.0,25.0,11.0,9.0,7.0,4.0,3.5,3.5,3.5,3.5,3.0,3.0,3.0,19.0,6.0,25.0,7.0,4.5,3.5,3.0,3.0,3.0,3.0,2.5,2.5,2.5,11.0,4.5,3.5,25.0,4.5,3.5,3.0,3.0,2.5,2.5,2.5,2.5,2.5,8.0,4.0,3.5,3.0,25.0,3.5,3.0,2.5,2.5,2.5,2.5,2.0,2.0,6.0,3.5,3.0,3.0,2.5,18.0,3.0,2.5,2.5,2.5,2.0,2.0,2.0,5.0,3.0,3.0,2.5,2.5,2.5,14.0,3.0,2.5,2.5,2.0,2.0,2.0,4.5,3.0,2.5,2.5,2.5,2.0,2.0,11.0,2.5,2.5,2.0,2.0,1.5,4.5,3.0,2.5,2.5,2.0,2.0,2.0,2.0,9.5,2.5,2.0,2.0,1.5,4.5,3.0,2.5,2.0,2.0,2.0,2.0,2.0,2.0,8.0,2.5,2.0,2.0,4.0,3.0,2.5,2.0,2.0,2.0,1.5,1.5,1.5,1.5,6.5,2.0,1.5,4.0,3.0,2.5,2.0,2.0,1.5,1.5,1.5,1.5,1.5,1.5,5.5,1.5,3.5,2.5,2.5,2.0,2.0,1.5,1.5,1.5,1.5,1.5,1.0,1.0,5.0]},"meta":{"samplesPerMatchup":24000,"model":"chipEV jam-or-fold, equal stacks, no overcalls, card removal via combo compatibility"}}/*DATA_END*/;
+
+/* =====================================================================
+   Cards, hand classes, equity matrix
+   ===================================================================== */
+const RANKS = 'AKQJT98765432';
+const SUITS = 'shdc';
+const SUIT_SYM = { s: '♠', h: '♥', d: '♦', c: '♣' };
+const HANDS = Array.from({ length: 169 }, (_, h) => h);
+const rowOf = h => Math.floor(h / 13), colOf = h => h % 13;
+
+function handName(h) {
+  const i = rowOf(h), j = colOf(h);
+  if (i === j) return RANKS[i] + RANKS[i];
+  return i < j ? RANKS[i] + RANKS[j] + 's' : RANKS[j] + RANKS[i] + 'o';
+}
+function handKind(h) { const i = rowOf(h), j = colOf(h); return i === j ? 'pair' : (i < j ? 'suited' : 'offsuit'); }
+function hiLo(h) { const i = rowOf(h), j = colOf(h); return i <= j ? [i, j] : [j, i]; }
+const COMBOS = HANDS.map(h => ({ pair: 6, suited: 4, offsuit: 12 })[handKind(h)]);
+const NAME_TO_H = {}; HANDS.forEach(h => { NAME_TO_H[handName(h)] = h; });
+
+function cardsToHand(c1, c2) {
+  const r1 = 12 - Math.floor(c1 / 4), r2 = 12 - Math.floor(c2 / 4); // card int: rankFromTwo*4+suit → rank index (0 = A)
+  const suited = (c1 % 4) === (c2 % 4);
+  const a = Math.min(r1, r2), b = Math.max(r1, r2);
+  if (a === b) return a * 13 + a;
+  return suited ? a * 13 + b : b * 13 + a;
+}
+function cardRank(c) { return RANKS[12 - Math.floor(c / 4)]; }
+function cardSuit(c) { return SUITS[c % 4]; }
+
+function classCombos(h) {
+  const i = rowOf(h), j = colOf(h), out = [];
+  if (i === j) { for (let a = 0; a < 4; a++) for (let b = a + 1; b < 4; b++) out.push([i * 4 + a, i * 4 + b]); }
+  else if (i < j) { for (let s = 0; s < 4; s++) out.push([i * 4 + s, j * 4 + s]); }
+  else { for (let a = 0; a < 4; a++) for (let b = 0; b < 4; b++) if (a !== b) out.push([j * 4 + a, i * 4 + b]); }
+  return out;
+}
+// W[h][v]: combos of v compatible with one combo of h (card removal)
+const W = new Float32Array(169 * 169);
+(function buildW() {
+  const lists = HANDS.map(classCombos);
+  for (let h = 0; h < 169; h++) {
+    const [a, b] = lists[h][0];
+    for (let v = 0; v < 169; v++) {
+      let c = 0;
+      for (const [x, y] of lists[v]) if (x !== a && x !== b && y !== a && y !== b) c++;
+      W[h * 169 + v] = c;
+    }
+  }
+})();
+const EQ = new Float32Array(169 * 169);
+(function decodeEq() {
+  const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  const lut = new Int16Array(128); for (let i = 0; i < 64; i++) lut[B64.charCodeAt(i)] = i;
+  const s = DATA.eq || '';
+  for (let n = 0; n < 169 * 169; n++) {
+    EQ[n] = s ? ((lut[s.charCodeAt(2 * n)] << 6) | lut[s.charCodeAt(2 * n + 1)]) / 4095 : 0.5;
+  }
+})();
+const NASH = { bb: {}, none: {} };
+for (let k = 1; k <= 8; k++) {
+  NASH.bb[k] = Float32Array.from(DATA.nashPushBBAnte[k]);
+  NASH.none[k] = Float32Array.from(DATA.nashPushNoAnte[k]);
+}
+
+// equity of class h vs weighted range R, with card removal. Returns [equity, probability-mass of R]
+function eqVs(h, R) {
+  let num = 0, den = 0; const base = h * 169;
+  for (let v = 0; v < 169; v++) {
+    const r = R[v]; if (!r) continue;
+    const w = W[base + v] * r; den += w; num += w * EQ[base + v];
+  }
+  return den > 0 ? [num / den, den / 1225] : [0.5, 0];
+}
+function rangePct(R) { let s = 0; for (let h = 0; h < 169; h++) s += COMBOS[h] * Math.min(1, R[h]); return s / 1326 * 100; }
+
+/* =====================================================================
+   Range notation parser & charts
+   ===================================================================== */
+function expandToken(tok) {
+  const R = c => RANKS.indexOf(c), out = [];
+  const push = (hi, lo, t) => { if (t !== 'o') out.push(hi * 13 + lo); if (t !== 's') out.push(lo * 13 + hi); };
+  let m;
+  if ((m = tok.match(/^([AKQJT2-9])\1\+$/))) { for (let x = R(m[1]); x >= 0; x--) out.push(x * 13 + x); return out; }
+  if ((m = tok.match(/^([AKQJT2-9])\1-([AKQJT2-9])\2$/))) { let a = R(m[1]), b = R(m[2]); if (a > b) [a, b] = [b, a]; for (let x = a; x <= b; x++) out.push(x * 13 + x); return out; }
+  if ((m = tok.match(/^([AKQJT2-9])\1$/))) { const r = R(m[1]); return [r * 13 + r]; }
+  if ((m = tok.match(/^([AKQJT2-9])([AKQJT2-9])([so]?)\+$/))) { const hi = R(m[1]); for (let x = R(m[2]); x > hi; x--) push(hi, x, m[3]); return out; }
+  if ((m = tok.match(/^([AKQJT2-9])([AKQJT2-9])([so]?)-([AKQJT2-9])([AKQJT2-9])([so]?)$/))) { const hi = R(m[1]); let a = R(m[2]), b = R(m[5]); if (a > b) [a, b] = [b, a]; for (let x = a; x <= b; x++) push(hi, x, m[3]); return out; }
+  if ((m = tok.match(/^([AKQJT2-9])([AKQJT2-9])([so]?)$/))) { push(R(m[1]), R(m[2]), m[3]); return out; }
+  throw new Error('bad range token: ' + tok);
+}
+function parseRange(str) {
+  const w = new Float32Array(169);
+  (str || '').split(',').map(s => s.trim()).filter(Boolean).forEach(t => expandToken(t).forEach(h => { w[h] = 1; }));
+  return w;
+}
+function chart(src) { // core = 1, mix = 0.5
+  const core = parseRange(src.core), mix = parseRange(src.mix), w = new Float32Array(169);
+  for (let h = 0; h < 169; h++) w[h] = core[h] ? 1 : (mix[h] ? 0.5 : 0);
+  return w;
+}
+// First-in (RFI) ranges keyed by players left to act behind (k). 100BB GTO-style approximations.
+const RFI_SRC = {
+  8: { core: '66+, A9s+, A5s-A4s, KTs+, QTs+, JTs, T9s, AJo+, KQo', mix: '55-44, A8s, A3s, K9s, Q9s, J9s, 98s, ATo, KJo' },
+  7: { core: '55+, A8s+, A5s-A3s, KTs+, QTs+, JTs, T9s, 98s, AJo+, KQo', mix: '44-33, A7s, A2s, K9s, Q9s, J9s, 87s, ATo, KJo' },
+  6: { core: '55+, A7s+, A5s-A3s, K9s+, Q9s+, J9s+, T9s, 98s, 87s, AJo+, KQo', mix: '44-22, A6s, A2s, K8s, Q8s, T8s, 76s, 65s, ATo, KJo, QJo' },
+  5: { core: '44+, A2s+, K9s+, Q9s+, J9s+, T8s+, 98s, 87s, 76s, ATo+, KJo+', mix: '33-22, K8s, K7s, K6s, Q8s, J8s, 97s, 65s, 54s, A9o, KTo, QJo, QTo' },
+  4: { core: '22+, A2s+, K7s+, Q8s+, J8s+, T8s+, 97s+, 87s, 76s, 65s, A9o+, KTo+, QTo+, JTo', mix: 'K6s, K5s, K4s, Q7s, J7s, T7s, 86s, 75s, 54s, A8o, A5o, K9o, Q9o, J9o' },
+  3: { core: '22+, A2s+, K5s+, Q7s+, J7s+, T7s+, 97s+, 86s+, 75s+, 65s, 54s, A8o+, KTo+, QTo+, JTo', mix: 'K4s, K3s, K2s, Q6s, Q5s, J6s, T6s, 96s, 85s, 64s, 53s, A7o, A5o, A4o, K9o, Q9o, J9o, T9o' },
+  2: { core: '22+, A2s+, K2s+, Q2s+, J4s+, T6s+, 95s+, 85s+, 74s+, 64s+, 53s+, 43s, A2o+, K9o+, Q9o+, J9o+, T9o', mix: 'J3s, J2s, T5s, T4s, 94s, 84s, 73s, 63s, 52s, 42s, K8o-K5o, Q8o, J8o, T8o, 98o, 97o, 87o, 76o' },
+  1: { core: '22+, A2s+, K2s+, Q4s+, J6s+, T6s+, 96s+, 85s+, 75s+, 64s+, 54s, A2o+, K8o+, Q9o+, J9o+, T9o', mix: 'Q3s, Q2s, J5s, J4s, T5s, 95s, 74s, 63s, 53s, 43s, K7o, K6o, K5o, Q8o, J8o, T8o, 98o, 87o' },
+};
+const RFI = {}; for (const k in RFI_SRC) RFI[k] = chart(RFI_SRC[k]);
+const RFI_SEAT = { 8: '9인 UTG', 7: 'UTG+1', 6: 'UTG+2', 5: 'LJ', 4: 'HJ', 3: 'CO', 2: 'BTN', 1: 'SB' };
+
+// Facing a single open: hero role (IP / SB / BB) × opener group
+const DEF_SRC = {
+  IP: {
+    EP: { r3: { core: 'QQ+, AKs, AKo', mix: 'JJ, AQs, A5s, A4s' }, call: { core: 'JJ-55, AQs-ATs, KQs, KJs, QJs, JTs, T9s, AQo', mix: '44-22, A9s, KTs, QTs, 98s, 87s, AJo, KQo' } },
+    MP: { r3: { core: 'QQ+, AKs, AKo, AQs', mix: 'JJ, TT, AJs, KQs, AQo, A5s, A4s, 76s, 65s' }, call: { core: 'JJ-22, AJs-ATs, KQs-KTs, QJs, QTs, JTs, T9s, 98s, AQo, KQo', mix: 'A9s, J9s, 87s, 76s, AJo, KJo' } },
+    CO: { r3: { core: 'JJ+, AQs+, AKo, A5s, A4s', mix: 'TT, AJs, ATs, KQs, KJs, AQo, AJo, KQo, A3s, A2s, K9s, Q9s, J9s, T8s, 76s, 65s' }, call: { core: 'TT-22, AJs-A6s, KJs-K9s, QJs-Q9s, J9s, JTs, T9s, T8s, 98s, 87s, 76s, 65s, AQo-ATo, KQo, KJo, QJo', mix: 'K8s, 97s, 86s, 54s, KTo, QTo, JTo' } },
+  },
+  SB: {
+    EP: { r3: { core: 'QQ+, AKs, AKo', mix: 'JJ, AQs, A5s' }, call: { core: '', mix: 'JJ-99, AQs, AJs, KQs' } },
+    MP: { r3: { core: 'QQ+, AQs+, AKo, A5s', mix: 'JJ, TT, AJs, KQs, AQo, A4s' }, call: { core: '', mix: 'TT-88, AJs, ATs, KQs, KJs, QJs' } },
+    CO: { r3: { core: 'TT+, AJs+, AQo+, KQs, A5s, A4s', mix: '99, 88, ATs, A9s, KJs, KTs, QJs, QTs, JTs, AJo, KQo, A3s, A2s, T9s, 98s' }, call: { core: '', mix: '99-66, ATs-A8s, KJs, QJs, JTs, T9s' } },
+    BTN: { r3: { core: '88+, ATs+, A5s, A4s, KJs+, QJs, AJo+, KQo', mix: '77, 66, A9s-A6s, A3s, A2s, KTs, K9s, QTs, JTs, J9s, T9s, 98s, 87s, ATo, KJo' }, call: { core: '', mix: '66-22, A9s-A6s, KTs, QTs, JTs, T9s' } },
+  },
+  BB: {
+    EP: { r3: { core: 'QQ+, AKs, AKo', mix: 'JJ, AQs, A5s, A4s' }, call: { core: 'JJ-22, AQs-A2s, KQs-K9s, QJs-Q9s, J9s+, T8s+, 97s+, 87s, 76s, 65s, 54s, AQo-ATo, KQo, KJo', mix: 'K8s, Q8s, J8s, 86s, 75s, 64s, A9o, KTo, QJo' } },
+    MP: { r3: { core: 'QQ+, AQs+, AKo', mix: 'JJ, TT, AJs, KQs, AQo, A5s, A4s, 76s, 65s' }, call: { core: 'JJ-22, AJs-A2s, KQs-K7s, QJs-Q8s, J8s+, T8s+, 97s+, 86s+, 75s+, 64s+, 54s, AQo-A9o, KQo-KTo, QJo, QTo, JTo', mix: 'K6s-K4s, Q7s, J7s, T7s, 96s, 85s, 74s, 53s, A8o, A5o, K9o, Q9o, J9o, T9o' } },
+    CO: { r3: { core: 'JJ+, AQs+, AKo, A5s, A4s', mix: 'TT, 99, AJs, ATs, KQs, KJs, AQo, AJo, KQo, A3s, K9s, Q9s, J9s, T8s, 97s, 86s' }, call: { core: 'TT-22, AJs-A2s, KJs-K2s, QJs-Q5s, J6s+, T6s+, 96s+, 85s+, 74s+, 63s+, 53s+, 43s, AQo-A5o, KQo-K9o, Q9o+, J9o+, T9o', mix: 'Q4s-Q2s, J5s, J4s, T5s, 95s, 84s, 73s, 52s, 42s, A4o-A2o, K8o, Q8o, J8o, T8o, 98o, 87o' } },
+    BTN: { r3: { core: 'TT+, AJs+, AQo+, KQs, A5s, A4s', mix: '99-77, ATs-A8s, A3s, A2s, KJs, KTs, QJs, QTs, JTs, AJo, ATo, KQo, KJo, K9s, Q9s, J9s, T9s, 98s, 87s, 76s, 65s' }, call: { core: '99-22, AJs-A2s, KJs-K2s, QJs-Q2s, J2s+, T4s+, 95s+, 84s+, 74s+, 63s+, 53s+, 42s+, AJo-A2o, KQo-K6o, Q8o+, J8o+, T8o+, 97o+, 87o, 76o', mix: 'T3s, T2s, 94s, 93s, 83s, 73s, 62s, 52s, 32s, K5o-K2o, Q7o, Q6o, J7o, T7o, 96o, 86o, 75o, 65o, 54o' } },
+    SB: { r3: { core: '99+, ATs+, A5s, A4s, KJs+, AJo+, KQo', mix: '88-66, A9s-A6s, A3s, A2s, KTs, K9s, QJs, QTs, JTs, T9s, 98s, ATo, KJo' }, call: { core: '88-22, A9s-A2s, KTs-K2s, QJs-Q2s, J2s+, T3s+, 94s+, 84s+, 73s+, 63s+, 52s+, 42s+, 32s, ATo-A2o, KJo-K5o, Q8o+, J8o+, T8o+, 97o+, 86o+, 76o, 65o', mix: 'K4o-K2o, Q7o-Q5o, J7o, T7o, 96o, 85o, 75o, 64o, 54o' } },
+  },
+};
+const DEF = {};
+for (const role in DEF_SRC) { DEF[role] = {}; for (const g in DEF_SRC[role]) DEF[role][g] = { r3: chart(DEF_SRC[role][g].r3), call: chart(DEF_SRC[role][g].call) }; }
+const GROUP_OF_K = k => k >= 6 ? 'EP' : k >= 4 ? 'MP' : k === 3 ? 'CO' : k === 2 ? 'BTN' : 'SB';
+const GROUP_KO = { EP: '얼리 포지션', MP: '미들 포지션', CO: '컷오프', BTN: '버튼', SB: '스몰 블라인드' };
+
+const SET = s => new Set(s.split(' ').map(n => NAME_TO_H[n]));
+const PREM_OPEN = SET('AA KK QQ JJ AKs AKo AQs');     // short-stack opens: min-raise to induce
+const PREM_3B = SET('AA KK QQ AKs AKo');              // 3-bet small even when shallow
+const TRAP = SET('AA KK');
+const EASY = SET('AA KK QQ AKs AKo');
+function isSpec(h, maxTop) { // small pairs & suited connectors/one-gappers that live on implied odds
+  const [a, b] = hiLo(h), kind = handKind(h);
+  if (kind === 'pair') return a >= RANKS.indexOf(maxTop === 'T' ? '9' : '6');
+  if (kind !== 'suited') return false;
+  return a >= RANKS.indexOf(maxTop || '9') && b - a <= 2;
+}
+function isSuitedWheelishAce(h) { const [a, b] = hiLo(h); return handKind(h) === 'suited' && a === 0 && b >= RANKS.indexOf('9'); }
+
+/* =====================================================================
+   Formatting helpers
+   ===================================================================== */
+const r1 = x => Math.round(x * 10) / 10;
+const fbb = x => `${r1(x).toLocaleString('en-US')}BB`;
+const fpct = x => `${(Math.round(x * 10) / 10).toFixed(1)}%`;
+const fev = x => `${x >= 0 ? '+' : '−'}${Math.abs(r1(x)).toFixed(1)}BB`;
+const fchips = x => Math.round(x).toLocaleString('en-US');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const handLabel = h => handName(h);
+
+function harrington(M) {
+  if (M >= 20) return { key: 'green', name: '그린 존', desc: '모든 전략을 쓸 수 있는 여유 구간' };
+  if (M >= 10) return { key: 'yellow', name: '옐로 존', desc: '스몰 페어·수딧 커넥터의 가치가 떨어지기 시작' };
+  if (M >= 6) return { key: 'orange', name: '오렌지 존', desc: '선제 진입(first-in)으로 블라인드를 가져오는 것이 중요' };
+  if (M >= 1) return { key: 'red', name: '레드 존', desc: '올인 아니면 폴드만 남는 구간' };
+  return { key: 'dead', name: '데드 존', desc: '운에 맡길 수밖에 없는 구간' };
+}
+
+/* =====================================================================
+   Table layout & scenario generation
+   ===================================================================== */
+const LABELS = {
+  9: ['UTG', 'UTG+1', 'UTG+2', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
+  8: ['UTG', 'UTG+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
+  7: ['UTG', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
+  6: ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
+  5: ['UTG', 'CO', 'BTN', 'SB', 'BB'],
+  4: ['CO', 'BTN', 'SB', 'BB'],
+  3: ['BTN', 'SB', 'BB'],
+};
+const TYPE_W = { rfi: 4, vsOpen: 3, vsJam: 2, vsLimp: 1.3 };
+const TYPE_KO = { rfi: '오픈 기회', vsOpen: '레이즈 상대', vsJam: '올인 상대', vsLimp: '림퍼 상대' };
+const BB_LEVELS = [200, 300, 400, 500, 600, 800, 1000, 1200, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 8000, 10000];
+
+const rnd = (a, b) => a + Math.random() * (b - a);
+const rint = (a, b) => Math.floor(rnd(a, b + 1));
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+function gauss() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+function wpick(keys, weights) { const tot = keys.reduce((s, k) => s + weights[k], 0); let r = Math.random() * tot; for (const k of keys) { r -= weights[k]; if (r <= 0) return k; } return keys[keys.length - 1]; }
+function pickN(s) { if (s !== 'rand') return +s; const r = Math.random(); return r < .36 ? 9 : r < .46 ? 8 : r < .53 ? 7 : r < .83 ? 6 : r < .92 ? 5 : r < .97 ? 4 : 3; }
+function pickDepth(s) {
+  const b = s !== 'rand' ? s : (() => { const r = Math.random(); return r < .36 ? 'short' : r < .7 ? 'mid' : 'deep'; })();
+  return b === 'short' ? rnd(4, 15) : b === 'mid' ? rnd(15, 40) : rnd(40, 120);
+}
+
+function wager(sc, p) { return p.bb - (p.k === 0 ? sc.ante : 0); } // chips that can still go into the pot (BB ante is dead)
+let SC_SEQ = 0;
+
+function genScenario(st) {
+  for (let t = 0; t < 200; t++) { const sc = tryGen(st); if (sc) return sc; }
+  throw new Error('scenario generation failed');
+}
+function tryGen(st) {
+  let types = Object.keys(TYPE_W).filter(t => st.types[t]);
+  if (!types.length) types = ['rfi'];
+  const type = wpick(types, TYPE_W);
+  const N = pickN(st.players);
+  const labels = LABELS[N];
+  const ante = st.ante === 'bb' ? 1 : 0;
+  let heroIdx, villIdx = -1, limpers = [];
+  if (type === 'rfi') heroIdx = rint(0, N - 2);
+  else if (type === 'vsOpen' || type === 'vsJam') { villIdx = rint(0, N - 2); heroIdx = rint(villIdx + 1, N - 1); }
+  else {
+    heroIdx = rint(1, N - 1);
+    const cands = [];
+    for (let i = 0; i < heroIdx; i++) { const k = N - 1 - i; if (k >= 2 || (k === 1 && heroIdx === N - 1)) cands.push(i); }
+    if (!cands.length) return null;
+    const nL = Math.min(cands.length, Math.random() < .7 ? 1 : 2);
+    for (let i = cands.length - 1; i > 0; i--) { const j = rint(0, i); [cands[i], cands[j]] = [cands[j], cands[i]]; }
+    limpers = cands.slice(0, nL).sort((a, b) => a - b);
+  }
+  const heroBB = pickDepth(st.depth);
+  const avg = Math.max(10, heroBB * rnd(0.75, 1.6));
+  const BBc = pick(BB_LEVELS);
+  const players = labels.map((label, i) => ({
+    i, label, k: N - 1 - i,
+    bb: i === heroIdx ? heroBB : Math.min(250, Math.max(3, avg * Math.exp(gauss() * 0.55))),
+    st: i < heroIdx ? 'fold' : (i === heroIdx ? 'hero' : 'wait'), bet: 0,
+  }));
+  if (type === 'vsOpen' && players[villIdx].bb < 14) players[villIdx].bb = rnd(14, Math.max(24, avg * 1.4));
+  if (type === 'vsJam') players[villIdx].bb = rnd(3.5, 15);
+  if (type === 'vsLimp') limpers.forEach(i => { if (players[i].bb < 8) players[i].bb = rnd(10, 45); });
+  const unit = BBc / 20;
+  players.forEach(p => { p.chips = Math.max(unit * 40, Math.round(p.bb * BBc / unit) * unit); p.bb = p.chips / BBc; });
+
+  const sc = { id: 'sc' + (++SC_SEQ) + '_' + Math.random().toString(36).slice(2, 8), type, N, ante, BBc, players, heroIdx, villIdx, limpers, R: 0 };
+  // blinds
+  players.forEach(p => { if (p.k === 1) p.bet = 0.5; if (p.k === 0) p.bet = 1; });
+  const hero = players[heroIdx];
+  if (type === 'vsOpen') {
+    const v = players[villIdx]; const s = wager(sc, v);
+    sc.R = v.k === 1 ? (s > 40 ? 3 : 2.5) : s <= 25 ? 2 : s <= 40 ? pick([2, 2.2]) : pick([2.2, 2.5]);
+    v.st = 'raise'; v.bet = sc.R;
+  }
+  if (type === 'vsJam') { const v = players[villIdx]; v.st = 'jam'; v.bet = wager(sc, v); }
+  if (type === 'vsLimp') limpers.forEach(i => { players[i].st = 'limp'; players[i].bet = 1; });
+
+  const behind = players.filter(p => p.i > heroIdx);
+  const hw = wager(sc, hero);
+  if (type === 'rfi') sc.eff = Math.min(hw, Math.max(...behind.map(p => wager(sc, p))));
+  else if (type === 'vsOpen' || type === 'vsJam') sc.eff = Math.min(hw, wager(sc, players[villIdx]));
+  else sc.eff = Math.min(hw, Math.max(...limpers.map(i => wager(sc, players[i])), ...behind.map(p => wager(sc, p))));
+  if (sc.eff < 2.5) return null;
+  if (type === 'vsOpen' && (sc.eff < sc.R * 2.2 || wager(sc, players[villIdx]) <= sc.R + 1)) return null;
+  if (type === 'vsJam' && hero.k === 0 && sc.eff <= 1.5) return null;
+  return sc;
+}
+
+function dealHand() {
+  const c1 = rint(0, 51); let c2 = rint(0, 51); while (c2 === c1) c2 = rint(0, 51);
+  const hi = Math.floor(c1 / 4) >= Math.floor(c2 / 4) ? [c1, c2] : [c2, c1];
+  return { cards: hi, h: cardsToHand(hi[0], hi[1]) };
+}
+
+/* =====================================================================
+   Engines: evalHand(h) → verdict per action family
+     fam: fold | call (limp/check/flat) | raise (open / 3-bet / iso) | allin
+   ===================================================================== */
+const ENGINES = new Map();
+function engineFor(sc) { if (!ENGINES.has(sc.id)) ENGINES.set(sc.id, buildEngine(sc)); return ENGINES.get(sc.id); }
+function buildEngine(sc) {
+  if (sc.type === 'rfi') return rfiEngine(sc);
+  if (sc.type === 'vsOpen') return vsOpenEngine(sc);
+  if (sc.type === 'vsJam') return vsJamEngine(sc);
+  return vsLimpEngine(sc);
+}
+const V = (fold, call, raise, allin) => ({ fold, call, raise, allin });
+const pushTh = (sc, k, h) => NASH[sc.ante ? 'bb' : 'none'][Math.max(1, Math.min(8, k))][h];
+const D_OF = sc => 1.5 + sc.ante;
+
+function zoneOfRfi(eff) { return eff <= 12 ? 'A' : eff <= 20 ? 'B' : eff <= 40 ? 'C' : 'D'; }
+
+function rfiEngine(sc) {
+  const hero = sc.players[sc.heroIdx], k = hero.k, eff = sc.eff, isSB = k === 1;
+  const zone = zoneOfRfi(eff), Rw = RFI[k];
+  function evalHand(h) {
+    const w = Rw[h], pth = pushTh(sc, k, h), prem = PREM_OPEN.has(h);
+    const push = pth >= eff - 1e-6, near = Math.abs(pth - eff) <= 1.0;
+    let f = V('bad', 'bad', 'bad', 'bad');
+    if (zone === 'A') {
+      if (push) { f.allin = 'best'; if (near) f.fold = 'ok'; } else { f.fold = 'best'; if (near) f.allin = 'ok'; }
+      if (prem && eff >= 8) f.raise = 'ok';
+      if (isSB && push) f.call = 'ok';
+    } else if (zone === 'B') {
+      if (prem) { f.raise = 'best'; if (eff <= 16) f.allin = 'ok'; }
+      else if (push && w > 0) { if (eff <= 16) { f.allin = 'best'; f.raise = 'ok'; } else { f.raise = 'best'; f.allin = 'ok'; } }
+      else if (push) { f.allin = 'best'; if (near) f.fold = 'ok'; }
+      else if (w > 0) { f.raise = 'best'; if (w < 1) f.fold = 'ok'; if (near) f.allin = 'ok'; }
+      else { f.fold = 'best'; if (near) f.allin = 'ok'; }
+      if (isSB && (w > 0 || push)) f.call = 'ok';
+    } else {
+      if (w >= 1) f.raise = 'best';
+      else if (w > 0) { f.raise = 'best'; f.fold = 'ok'; }
+      else f.fold = 'best';
+      if (zone === 'C' && eff <= 25 && push && !prem) f.allin = 'ok';
+      if (isSB && w > 0) f.call = 'ok';
+    }
+    return { f, w, pth, push, near, prem };
+  }
+  function sizeGrade(amt) {
+    const a = r1(amt);
+    if (zone === 'A' || zone === 'B') {
+      if (a <= 2) return ['best', ''];
+      if (a <= 2.5) return ['ok', '이 스택에서는 2BB(민레이즈)면 충분합니다.'];
+      if (isSB && a <= 3) return ['ok', 'SB라도 숏스택에서는 2~2.5BB가 효율적입니다.'];
+      return ['bad', `유효 ${fbb(eff)}에서 ${fbb(a)} 오픈은 스택 대비 너무 큽니다. 3벳 올인을 맞으면 큰 손실입니다.`];
+    }
+    if (zone === 'C') {
+      if (isSB) { if (a >= 2.5 && a <= 3) return ['best', '']; if (a <= 2) return ['ok', 'SB는 포지션이 없어 2.5~3BB가 표준입니다.']; return ['bad', 'SB 오픈이 너무 큽니다(2.5~3BB 권장).']; }
+      if (a <= 2) return ['best', ''];
+      if (a <= 2.5) return ['ok', '20~40BB에서는 2~2.2BB가 표준입니다. 2.5BB도 괜찮지만 3벳 올인을 맞을 때 손실이 커집니다.'];
+      if (a <= 3) return eff > 30 ? ['ok', '3BB는 이 스택에서 조금 큽니다(2~2.2BB 권장).'] : ['bad', `유효 ${fbb(eff)}에서 3BB 오픈은 스택의 ${fpct(3 / eff * 100)}를 투자해 리스틸에 취약합니다.`];
+      return ['bad', '오픈 사이즈가 너무 큽니다. 같은 폴드 효과를 더 적은 칩으로 얻을 수 있습니다.'];
+    }
+    if (isSB) { if (a >= 3 && a <= 3) return ['best', '']; if (a >= 2.5 && a <= 4) return ['ok', 'SB 표준은 약 3BB입니다(2.5~3.5BB 범위).']; return ['ok', 'SB 오픈은 약 3BB가 표준입니다.']; }
+    if (a >= 2.2 && a <= 2.5) return ['best', ''];
+    if (a < 2.2) return ['ok', '딥 스택 표준은 2.2~2.5BB입니다. 민레이즈도 쓰이지만 BB에게 너무 좋은 가격을 줍니다.'];
+    if (a <= 3) return ['ok', '3BB는 캐시게임 표준에 가깝습니다. 앤티가 있는 토너먼트에서는 2.2~2.5BB로 충분합니다.'];
+    return ['bad', '4BB 오픈은 과합니다. 약한 핸드는 모두 폴드하고 강한 핸드만 남아 리스크만 커집니다.'];
+  }
+  function trivial(h) {
+    const e = evalHand(h);
+    if (EASY.has(h)) return true;
+    if (zone === 'A') return Math.abs(e.pth - eff) > 6;
+    return e.f.fold === 'best' && RFI[1][h] === 0 && e.pth < eff - 3;
+  }
+  return { zone, evalHand, sizeGrade, trivial };
+}
+
+/* ---- reshove model: hero 3-bet jams over a single opener ----
+   Players left behind the hero "wake up" with TT+/AQ+ and call; otherwise it is a 2-player
+   jam-or-fold game between hero and opener, solved by fictitious play. */
+const WAKE = parseRange('TT+, AQs+, AKo');
+const WAKE_P = rangePct(WAKE) / 100;
+function solveReshove(O, R, eff, D, h0, o0, nBehind) {
+  const potBefore = D + R - o0, finalPot = 2 * eff + D - h0 - o0, potWake = 2 * eff + D + R - h0 - o0;
+  const pWake = 1 - Math.pow(1 - WAKE_P, nBehind);
+  const J = new Float32Array(169), C = new Float32Array(169).fill(0.5);
+  for (let h = 0; h < 169; h++) J[h] = eqVs(h, O)[0] > 0.52 ? 1 : 0;
+  const jamEV = h => {
+    let tot = 0, cw = 0, win = 0; const base = h * 169;
+    for (let v = 0; v < 169; v++) {
+      const o = O[v]; if (!o) continue;
+      const w = W[base + v] * o; tot += w; const c = w * C[v]; cw += c; win += c * EQ[base + v];
+    }
+    const pc = tot ? cw / tot : 0, eqc = cw > 0 ? win / cw : 0;
+    const evHU = (1 - pc) * potBefore + pc * (eqc * finalPot - (eff - h0));
+    const eqw = eqVs(h, WAKE)[0], evWake = eqw * potWake - (eff - h0);
+    return { ev: (1 - pWake) * evHU + pWake * evWake, evHU, pc, eqc, eqw, evWake };
+  };
+  for (let t = 0; t < 40; t++) {
+    const a = 1 / (t + 2);
+    const Cbr = new Float32Array(169), Jbr = new Float32Array(169);
+    for (let v = 0; v < 169; v++) { if (!O[v]) continue; const [e, m] = eqVs(v, J); Cbr[v] = m > 0 && e * finalPot - (eff - R) > 0 ? 1 : 0; }
+    for (let h = 0; h < 169; h++) Jbr[h] = jamEV(h).ev > 0 ? 1 : 0;
+    for (let i = 0; i < 169; i++) { J[i] += a * (Jbr[i] - J[i]); C[i] += a * (Cbr[i] - C[i]); }
+  }
+  const res = HANDS.map(jamEV);
+  const callRange = new Float32Array(169); for (let v = 0; v < 169; v++) callRange[v] = O[v] * (C[v] > 0.5 ? 1 : 0);
+  return { res, potBefore, finalPot, pWake, nBehind, callPctOfOpen: rangePct(callRange) / Math.max(1e-9, rangePct(O)) * 100, callRange };
+}
+function realization(h, eff, ip) {
+  const kind = handKind(h), [a, b] = hiLo(h);
+  let rf = ip ? 0.88 : 0.76;
+  if (kind === 'pair') rf += 0.05;
+  if (kind === 'suited') rf += 0.06;
+  if (kind !== 'pair' && b - a === 1) rf += 0.03;
+  if (kind === 'offsuit' && b >= RANKS.indexOf('7')) rf -= 0.08;
+  if (eff <= 20) rf += 0.08; else if (eff <= 30) rf += 0.04;
+  return Math.max(0.55, Math.min(1.0, rf));
+}
+
+function vsOpenEngine(sc) {
+  const hero = sc.players[sc.heroIdx], opener = sc.players[sc.villIdx];
+  const kh = hero.k, ko = opener.k, eff = sc.eff, R = sc.R, D = D_OF(sc);
+  const role = kh === 0 ? 'BB' : kh === 1 ? 'SB' : 'IP';
+  const group = GROUP_OF_K(ko);
+  const CH = DEF[role][group];
+  const zone = eff <= 25 ? 'short' : eff <= 35 ? 'trans' : 'deep';
+  const O = RFI[ko];
+  const h0 = kh === 0 ? 1 : kh === 1 ? 0.5 : 0, o0 = ko === 1 ? 0.5 : 0;
+  const RS = eff <= 40 ? solveReshove(O, R, eff, D, h0, o0, kh) : null;
+  const toCall = R - h0, potNow = D + R - o0, potAfter = potNow + toCall;
+  function chartFams(h) {
+    let t3 = CH.r3[h], tc = CH.call[h], filtered = false;
+    if (role !== 'BB' && eff < 50 && isSpec(h) && tc > 0 && t3 === 0) { tc = 0; filtered = true; }
+    const f = V('bad', 'bad', 'bad', 'bad');
+    if (t3 >= 1) { f.raise = 'best'; if (tc > 0) f.call = 'ok'; }
+    else if (t3 > 0 && tc >= 1) { f.raise = 'best'; f.call = 'best'; }
+    else if (t3 > 0 && tc > 0) { f.raise = 'best'; f.call = 'best'; f.fold = 'ok'; }
+    else if (t3 > 0) { f.raise = 'best'; f.fold = 'ok'; }
+    else if (tc >= 1) f.call = 'best';
+    else if (tc > 0) { f.call = 'best'; f.fold = 'ok'; }
+    else f.fold = 'best';
+    return { f, t3, tc, filtered };
+  }
+  function evalHand(h) {
+    const evJ = RS ? RS.res[h].ev : null;
+    const eqO = eqVs(h, O)[0];
+    let out = { evJ, eqO, zone };
+    if (zone === 'short') {
+      const evC = role === 'BB' ? realization(h, eff, false) * eqO * potAfter - toCall : null;
+      const cand = { fold: 0, allin: evJ }; if (role === 'BB') cand.call = evC;
+      let best = 'fold'; for (const k in cand) if (cand[k] > cand[best] + 1e-9) best = k;
+      const mx = cand[best], g = k => k === best ? 'best' : (cand[k] >= mx - 0.3 ? 'ok' : 'bad');
+      const f = V(g('fold'), role === 'BB' ? g('call') : (TRAP.has(h) && eff >= 15 ? 'ok' : 'bad'), TRAP.has(h) ? 'ok' : 'bad', g('allin'));
+      return Object.assign(out, { f, evC });
+    }
+    const c = chartFams(h); const f = c.f;
+    if (zone === 'trans') {
+      if (PREM_3B.has(h)) { f.raise = 'best'; f.allin = 'ok'; }
+      else if (c.t3 > 0 && evJ > 0) f.allin = 'best';
+      else if (evJ > 0.3) f.allin = 'ok';
+    } else if (RS && c.t3 > 0 && evJ > 0 && !TRAP.has(h)) f.allin = 'ok';
+    return Object.assign(out, c, { f });
+  }
+  function sizeGrade(amt) {
+    const x = amt / R, ip = role === 'IP';
+    if (zone === 'short') return TRAP.has(sc._h) ? ['ok', 'AA·KK는 작은 3벳으로 올인을 유도하는 트랩도 가능합니다.'] : ['bad', `유효 ${fbb(eff)}에서 작은 3벳은 스택의 큰 부분을 넣은 뒤 올인에 폴드할 수 없게 만듭니다. 3벳은 올인으로 하세요.`];
+    if (amt > 0.45 * eff) return ['bad', `3벳 ${fbb(amt)}는 유효 스택의 ${fpct(amt / eff * 100)}입니다. 이만큼 넣으면 사실상 커밋이므로 올인이 낫습니다.`];
+    if (ip) {
+      if (zone === 'trans') return x <= 3.05 ? ['best', ''] : ['ok', '스택이 얕을수록 3벳을 작게(2.5~3배) 가져갑니다.'];
+      if (x >= 2.95 && x <= 3.05) return ['best', ''];
+      if (x < 2.95) return ['ok', 'IP 3벳은 오픈의 약 3배가 표준입니다. 2.5배는 상대에게 좋은 콜 가격을 줍니다.'];
+      return ['ok', 'IP에서는 3배면 충분합니다. 4배는 OOP(블라인드) 표준입니다.'];
+    }
+    if (zone === 'trans') return x <= 3.05 && x >= 2.95 ? ['best', ''] : x > 3.05 ? ['ok', '얕은 스택에서는 OOP라도 3배 정도로 작게 3벳합니다.'] : ['ok', 'OOP 3벳은 조금 더 크게(약 3배 이상) 가져갑니다.'];
+    if (x >= 3.95 && x <= 4.05) return ['best', ''];
+    if (x >= 2.95) return ['ok', `OOP(${role})에서는 포지션 불리를 상쇄하려고 오픈의 약 4배로 3벳합니다.`];
+    return ['bad', 'OOP에서 2.5배 3벳은 너무 작아 상대에게 포지션과 좋은 팟 오즈를 동시에 줍니다.'];
+  }
+  function trivial(h) {
+    if (TRAP.has(h)) return true;
+    const e = evalHand(h);
+    return e.f.fold === 'best' && DEF.BB.BTN.call[h] === 0 && DEF.BB.BTN.r3[h] === 0 && (evJ0(e) < -1.5);
+  }
+  const evJ0 = e => e.evJ == null ? -9 : e.evJ;
+  return { zone, role, group, O, RS, toCall, potNow, potAfter, evalHand, sizeGrade, trivial, h0, o0 };
+}
+
+function vsJamEngine(sc) {
+  const hero = sc.players[sc.heroIdx], jammer = sc.players[sc.villIdx];
+  const kj = jammer.k, J = wager(sc, jammer), eff = sc.eff, D = D_OF(sc);
+  const h0 = hero.k === 0 ? 1 : hero.k === 1 ? 0.5 : 0, j0 = kj === 1 ? 0.5 : 0;
+  const PR = new Float32Array(169); for (let v = 0; v < 169; v++) PR[v] = pushTh(sc, kj, v) >= J - 1e-6 ? 1 : 0;
+  const finalPot = 2 * eff + D - h0 - j0 + Math.max(0, 0); // side pots ignored: only eff is contested
+  const risk = eff - h0, req = risk / finalPot;
+  const evs = HANDS.map(h => { const [e] = eqVs(h, PR); return { eq: e, ev: e * finalPot - risk }; });
+  function evalHand(h) {
+    const { ev, eq } = evs[h];
+    const f = V(null, null, null, null);
+    if (ev > 0.15) { f.call = 'best'; f.fold = 'bad'; }
+    else if (ev < -0.15) { f.fold = 'best'; f.call = 'bad'; }
+    else if (ev >= 0) { f.call = 'best'; f.fold = 'ok'; }
+    else { f.fold = 'best'; f.call = 'ok'; }
+    return { f, ev, eq };
+  }
+  return { PR, J, finalPot, risk, req, evalHand, sizeGrade: () => ['bad', ''], trivial: h => Math.abs(evs[h].ev) > 2.5, pushPct: rangePct(PR), behind: sc.players.filter(p => p.i > sc.heroIdx).length };
+}
+
+function vsLimpEngine(sc) {
+  const hero = sc.players[sc.heroIdx], k = hero.k, eff = sc.eff, n = sc.limpers.length;
+  const role = k === 0 ? 'BB' : k === 1 ? 'SB' : 'IP';
+  const zone = eff <= 15 ? 'short' : 'deep';
+  const isoW = role === 'BB' ? RFI[5] : role === 'SB' ? RFI[4] : RFI[Math.min(8, k + 2)];
+  const ownW = role === 'BB' ? RFI[1] : RFI[k];
+  const pk = role === 'BB' ? 1 : k;
+  function evalHand(h) {
+    const pth = pushTh(sc, pk, h);
+    const f = V(role === 'BB' ? null : 'bad', 'bad', 'bad', 'bad');
+    const prem = PREM_OPEN.has(h);
+    let overlimpOK = false;
+    if (zone === 'short') {
+      const push = pth >= eff - 1.5, near = Math.abs(pth - (eff - 1.5)) <= 1;
+      f.allin = push ? 'best' : (near ? 'ok' : 'bad');
+      if (role === 'BB') f.call = push ? (near ? 'ok' : 'bad') : 'best';
+      else f.fold = push ? (near ? 'ok' : 'bad') : 'best';
+      if (prem) f.raise = 'ok';
+      return { f, pth, push, iso: isoW[h], own: ownW[h] };
+    }
+    const iso = isoW[h];
+    overlimpOK = role === 'IP' && eff >= 25 && ownW[h] > 0 && (isSpec(h, 'T') || isSuitedWheelishAce(h));
+    const preferCheap = isSpec(h) && iso > 0 && eff >= 25 && (overlimpOK || role === 'BB'); // small pairs / suited connectors: see a cheap multiway flop
+    if (preferCheap) { f.call = 'best'; f.raise = 'ok'; }
+    else if (iso >= 1) { f.raise = 'best'; }
+    else if (iso > 0) { f.raise = 'best'; if (role === 'BB') f.call = 'ok'; else if (overlimpOK || (role === 'SB' && ownW[h] > 0)) f.call = 'ok'; else f.fold = 'ok'; }
+    else if (overlimpOK) { f.call = 'best'; f.fold = 'ok'; }
+    else if (role === 'BB') f.call = 'best';
+    else if (role === 'SB' && ownW[h] > 0 && eff >= 20) { f.call = 'best'; f.fold = 'ok'; }
+    else f.fold = 'best';
+    if (eff <= 25 && pth >= eff && !prem) f.allin = f.raise === 'best' || f.call === 'best' ? 'ok' : (f.fold === 'best' ? 'bad' : 'ok');
+    return { f, pth, iso, own: ownW[h], overlimpOK };
+  }
+  const target = role === 'IP' ? 3 + n : 4 + n;
+  function sizeGrade(amt) {
+    const a = r1(amt);
+    if (zone === 'short') return PREM_OPEN.has(sc._h) ? ['ok', '숏스택 프리미엄은 작은 아이소로 콜을 유도할 수도 있습니다.'] : ['bad', '15BB 이하에서 아이소 레이즈 후 올인을 맞으면 폴드할 수 없습니다. 올인이 낫습니다.'];
+    if (a > 0.4 * eff) return ['bad', `${fbb(a)}는 유효 스택의 ${fpct(a / eff * 100)}입니다. 이 정도면 올인이 낫습니다.`];
+    if (Math.abs(a - target) < 0.05) return ['best', ''];
+    if (Math.abs(a - target) <= 1.05) return ['ok', `기본 공식은 ${role === 'IP' ? '3BB' : '4BB(OOP)'} + 림퍼당 1BB = ${fbb(target)}입니다.`];
+    return a < target ? ['bad', `림퍼 ${n}명에게 ${fbb(a)}는 너무 작아 여러 명이 따라옵니다. ${fbb(target)} 정도가 적당합니다.`] : ['bad', `${fbb(a)}는 너무 큽니다. 약한 림퍼들은 폴드하고 강한 핸드만 남습니다.`];
+  }
+  function trivial(h) {
+    if (TRAP.has(h)) return true;
+    const e = evalHand(h);
+    return (e.f.fold === 'best' || (role === 'BB' && e.f.call === 'best')) && RFI[2][h] === 0;
+  }
+  return { zone, role, n, isoW, ownW, target, evalHand, sizeGrade, trivial };
+}
+
+/* =====================================================================
+   Options & grading
+   ===================================================================== */
+function buildOptions(sc) {
+  const hero = sc.players[sc.heroIdx], hw = wager(sc, hero), opts = [];
+  const add = (id, fam, label, amount, key) => opts.push({ id, fam, label, amount, key });
+  const raiseCap = sc.eff * 0.95;
+  if (sc.type === 'rfi') {
+    add('fold', 'fold', '폴드', 0, 'F');
+    add('call', 'call', hero.k === 1 ? '림프 (컴플리트)' : '림프', 1, 'C');
+    let n = 1; [2, 2.5, 3, 4].forEach(a => { if (a < raiseCap) add('r' + a, 'raise', `레이즈 ${fbb(a)}`, a, String(n++)); });
+    add('allin', 'allin', '올인', hw, 'A');
+  } else if (sc.type === 'vsOpen') {
+    add('fold', 'fold', '폴드', 0, 'F');
+    add('call', 'call', `콜 ${fbb(sc.R)}`, sc.R, 'C');
+    let n = 1; [2.5, 3, 4].forEach(x => { const a = r1(sc.R * x); if (a < raiseCap) add('r' + a, 'raise', `3벳 ${fbb(a)}`, a, String(n++)); });
+    add('allin', 'allin', '올인', hw, 'A');
+  } else if (sc.type === 'vsJam') {
+    add('fold', 'fold', '폴드', 0, 'F');
+    add('call', 'call', hw > sc.eff + 0.01 ? `콜 ${fbb(sc.eff)}` : `콜 (올인 ${fbb(sc.eff)})`, sc.eff, 'C');
+  } else {
+    const n = sc.limpers.length;
+    if (hero.k === 0) add('call', 'call', '체크', 1, 'C');
+    else { add('fold', 'fold', '폴드', 0, 'F'); add('call', 'call', hero.k === 1 ? '컴플리트 (림프)' : '오버림프 (콜 1BB)', 1, 'C'); }
+    const sizes = [...new Set([3, 3 + n, 4 + n, 5 + n])].sort((a, b) => a - b);
+    let i = 1; sizes.forEach(a => { if (a < raiseCap) add('r' + a, 'raise', `레이즈 ${fbb(a)}`, a, String(i++)); });
+    add('allin', 'allin', '올인', hw, 'A');
+  }
+  return opts;
+}
+function gradeOption(sc, opt, h) {
+  const eng = engineFor(sc); sc._h = h;
+  const e = eng.evalHand(h);
+  const famV = e.f[opt.fam] || 'bad';
+  let v = famV, sizeV = null, sizeMsg = '';
+  if (opt.fam === 'raise' && famV !== 'bad') {
+    [sizeV, sizeMsg] = eng.sizeGrade(opt.amount);
+    if (sizeV === 'bad') v = 'bad'; else if (sizeV === 'ok' && famV === 'best') v = 'ok';
+  }
+  return { v, famV, sizeV, sizeMsg, e };
+}
+
+/* =====================================================================
+   Explanations (theory)
+   ===================================================================== */
+const REFS = {
+  harrington: { t: "Dan Harrington & Bill Robertie, <i>Harrington on Hold'em, Vol. II: The Endgame</i>, Two Plus Two, 2005", u: 'https://en.wikipedia.org/wiki/Harrington_on_Hold_%27em', n: 'M-비율과 존(그린·옐로·오렌지·레드) 시스템', u2: 'https://en.wikipedia.org/wiki/M_value' },
+  mop: { t: 'Bill Chen & Jerrod Ankenman, <i>The Mathematics of Poker</i>, ConJelCo, 2006', u: 'https://www.pokernews.com/news/2006/12/poker-book-review-mathematics-poker-3456.htm', n: '잼-오어-폴드(Jam-or-Fold) 게임의 균형 분석' },
+  kill: { t: 'Lee Nelson, Tysen Streib & Steven Heston, <i>Kill Everyone</i>, Huntington Press, 2007 (2판 2009)', u: 'https://huntingtonpress.com/kill-everyone/', n: '폴드 에퀴티와 균형(equilibrium) 기반 토너먼트 올인·리스틸 전략' },
+  mpt: { t: 'Michael Acevedo, <i>Modern Poker Theory</i>, D&B Poker, 2019', u: 'https://vaski.finna.fi/Record/vaski.4218306?lng=en-gb', n: 'GTO 원리에 기반한 프리플랍 레인지 구성과 사이징' },
+  nltp: { t: "David Sklansky & Ed Miller, <i>No Limit Hold 'em: Theory and Practice</i>, Two Plus Two, 2006", u: 'https://www.pokernews.com/news/2007/04/poker-book-theory-practice-sklansky-3722.htm', n: '스택 크기에 맞춘 플레이 조정과 임플라이드 오즈' },
+};
+
+function famKo(sc, fam, opt) {
+  if (opt) return opt.label;
+  if (fam === 'fold') return '폴드';
+  if (fam === 'call') return sc.type === 'rfi' ? '림프' : sc.type === 'vsLimp' ? (sc.players[sc.heroIdx].k === 0 ? '체크' : '오버림프') : '콜';
+  if (fam === 'raise') return sc.type === 'vsOpen' ? '3벳' : sc.type === 'vsLimp' ? '아이소 레이즈' : '오픈 레이즈';
+  return '올인';
+}
+
+function explain(sc, h) {
+  const eng = engineFor(sc), hero = sc.players[sc.heroIdx], hn = handLabel(h), eff = sc.eff;
+  const e = eng.evalHand(h);
+  const M = hero.bb / D_OF(sc), hz = harrington(M);
+  const out = { bullets: [], kpis: [], refs: [], why: {}, chart: null };
+  const pos = hero.label, k = hero.k;
+  const seatNote = (lab, kk) => (RFI_SEAT[kk] && RFI_SEAT[kk] !== lab ? `${lab}(뒤에 ${kk}명 · ${RFI_SEAT[kk]}과 같은 레인지)` : `${lab}(뒤에 ${kk}명)`);
+
+  if (sc.type === 'rfi') {
+    const zone = eng.zone, Rw = RFI[k], pct = rangePct(Rw);
+    const inTxt = e.w >= 1 ? '<b>레인지 안</b>' : e.w > 0 ? '<b>경계(혼합) 핸드</b>' : '<b>레인지 밖</b>';
+    const thTxt = e.pth >= 25 ? '25BB 이상에서도 푸시' : e.pth > 0 ? `최대 <b>${fbb(e.pth)}</b>까지 푸시` : '어떤 스택에서도 푸시하지 않음';
+    out.kpis.push(['유효 스택', fbb(eff)], ['M', `${r1(M)} · ${hz.name}`], ['푸시 상한', e.pth >= 25 ? '25BB+' : fbb(e.pth)]);
+    if (zone === 'A') {
+      out.bullets.push(`유효 스택 ${fbb(eff)}는 <b>푸시/폴드 구간</b>입니다. 2BB로 오픈했다가 올인을 맞으면 팟 오즈 때문에 거의 콜해야 하므로, 처음부터 올인해 폴드 에퀴티를 최대한 쓰는 편이 낫습니다.`);
+      out.bullets.push(`내쉬 푸시 차트에서 ${seatNote(pos, k)}의 ${hn} 핸드는 ${thTxt}합니다. 현재 ${fbb(eff)}이므로 <b>${e.push ? '올인' : '폴드'}</b>${e.near ? ' (경계에 가까워 반대 선택도 손실이 작음)' : ''}.`);
+      out.bullets.push(`뒤에 남은 사람이 많을수록 누군가 강한 핸드로 콜할 확률이 커지므로 푸시 레인지는 좁아집니다. 지금 자리의 ${fbb(eff)} 푸시 레인지는 약 <b>${fpct(rangePct(HANDS.map(x => pushTh(sc, k, x) >= eff ? 1 : 0)))}</b>입니다.`);
+      out.refs.push('mop', 'kill');
+    } else if (zone === 'B') {
+      out.bullets.push(`12~20BB는 <b>민레이즈와 오픈 푸시를 섞는 구간</b>입니다. 3벳 올인을 맞으면 콜하기 애매한 핸드(스몰~미들 페어, 약한 에이스)는 바로 올인해 폴드 에퀴티를 챙기고, 프리미엄은 2BB로 작게 열어 상대의 올인을 유도합니다.`);
+      out.bullets.push(`${seatNote(pos, k)} 오픈 레인지는 약 ${fpct(pct)}이고 ${hn} 핸드는 ${inTxt}입니다. 내쉬 기준으로는 ${thTxt}합니다(현재 ${fbb(eff)}).`);
+      if (e.prem) out.bullets.push(`${hn} 핸드는 프리미엄이라 작게 열어 상대가 올인하거나 콜하도록 두는 편이 기대값이 큽니다.`);
+      out.bullets.push('오픈 사이즈는 2BB(민레이즈): 3벳 올인을 당해도 잃는 칩이 적고, 앤티 덕분에 작은 사이즈로도 블라인드를 충분히 압박합니다.');
+      out.refs.push('kill', 'harrington');
+    } else if (zone === 'C') {
+      out.bullets.push(`20~40BB 미들 스택: 포지션별 표준 오픈 레인지를 쓰되, 사이즈는 <b>2~2.2BB</b>로 작게 가져갑니다. 3벳 올인(리스틸)을 맞았을 때의 손실을 줄이기 위해서입니다.`);
+      out.bullets.push(`${seatNote(pos, k)} 오픈 레인지는 약 ${fpct(pct)}(경계 핸드 포함 시 ${fpct(rangePct(Rw.map(x => x > 0 ? 1 : 0)))})이고 ${hn} 핸드는 ${inTxt}입니다.`);
+      if (eff <= 25 && e.push && !e.prem) out.bullets.push(`${hn} 핸드는 내쉬 기준 ${thTxt}하는 핸드라 25BB 이하에서는 오픈 올인도 수익이 나는 대안입니다.`);
+      out.refs.push('mpt', 'harrington');
+    } else {
+      out.bullets.push(`40BB 이상 딥 스택: 포지션별 GTO 근사 오픈 레인지를 따릅니다. 뒤에 남은 사람이 많을수록(얼리 포지션) 레인지가 좁고, 컷오프·버튼은 넓습니다.`);
+      out.bullets.push(`${seatNote(pos, k)} 오픈 레인지는 약 ${fpct(pct)}이고 ${hn} 핸드는 ${inTxt}입니다.`);
+      out.bullets.push(k === 1 ? 'SB는 포스트플랍 내내 BB에게 포지션이 없으므로 약 <b>3BB</b>로 크게 올려 BB의 콜 가격을 나쁘게 만듭니다.' : '사이즈는 <b>2.2~2.5BB</b>: 앤티로 팟이 이미 커서 작은 사이즈로도 블라인드가 충분히 폴드하고, 실패했을 때 잃는 칩도 적습니다.');
+      out.refs.push('mpt');
+    }
+    out.bullets.push(`M = ${r1(M)} → 해링턴의 <b>${hz.name}</b>: ${hz.desc}.`);
+    out.refs.push('harrington');
+    out.why = {
+      fold: e.f.fold === 'ok' ? '경계 핸드라 폴드도 큰 실수는 아닙니다.' : `${hn} 핸드는 이 자리에서 ${zone === 'A' ? '푸시' : '오픈'}할 만큼 강합니다. 폴드는 블라인드와 앤티를 가져올 기회를 버립니다.`,
+      call: e.f.call === 'ok' ? 'SB 림프는 솔버도 섞어 쓰는 전략이라 허용합니다. 다만 단순하고 착취당하기 어려운 기본 전략은 레이즈(또는 올인)/폴드입니다.' : '오픈 림프는 주도권을 잃고, 뒤 플레이어에게 싼 가격과 아이솔레이션 레이즈 기회를 줍니다. 첫 진입은 레이즈 아니면 폴드가 원칙입니다.',
+      raise: zone === 'A' ? (e.f.raise === 'ok' ? '프리미엄은 작게 열어 올인을 유도하는 것도 가능합니다.' : `유효 ${fbb(eff)}에서 작게 오픈한 뒤 올인을 맞으면 팟 오즈상 콜해야 합니다. 같은 칩을 걸고 폴드 에퀴티만 잃는 셈입니다.`)
+        : e.f.raise === 'ok' ? '오픈 레이즈도 수익이 나는 선택입니다.' : `${hn} 핸드는 이 자리 레인지 밖입니다. 뒤에 ${k}명이 남아 있어 더 강한 핸드에 3벳을 맞거나 포지션 없이 끌려가기 쉽습니다.`,
+      allin: e.f.allin === 'ok' || e.f.allin === 'best' ? '푸시 레인지 안에 있어 오픈 올인도 수익이 납니다.' : (zone === 'A' || zone === 'B') ? `${hn}의 푸시 상한(${e.pth >= 25 ? '25BB+' : fbb(e.pth)})이 현재 스택보다 낮아, 뒤 ${k}명 중 누군가 콜할 때 에퀴티가 부족합니다.` : `유효 ${fbb(eff)}에서 오픈 올인은 위험 대비 보상이 나쁩니다. 더 약한 핸드는 모두 폴드하고 더 강한 핸드만 콜합니다. 2~2.5BB로 같은 폴드 효과를 얻을 수 있습니다.`,
+    };
+    out.chart = zone === 'A' ? nashChart(sc, k, eff, h) : engineChart(sc, h, `${pos} 오픈 전략 · 유효 ${fbb(eff)}`);
+  }
+
+  if (sc.type === 'vsOpen') {
+    const opener = sc.players[sc.villIdx], role = eng.role, oPct = rangePct(eng.O);
+    const req = eng.toCall / eng.potAfter;
+    out.kpis.push(['유효 스택', fbb(eff)], [`vs ${opener.label} 레인지 에퀴티`, fpct(e.eqO * 100)]);
+    out.bullets.push(`${opener.label}(뒤에 ${opener.k}명)의 오픈 레인지는 약 <b>${fpct(oPct)}</b>입니다. 앞자리에서 연 레이즈일수록 레인지가 강하므로 디펜스도 좁아야 합니다. ${hn} 핸드는 이 레인지 상대로 에퀴티 <b>${fpct(e.eqO * 100)}</b>입니다.`);
+    if (e.zone === 'short') {
+      const rs = eng.RS.res[h];
+      out.kpis.push(['올인 EV', fev(rs.ev)]);
+      out.bullets.push(`유효 ${fbb(eff)}는 <b>리스틸(3벳 올인) 구간</b>입니다. 작은 3벳은 스택의 큰 부분을 넣은 뒤 폴드하기 어려워지므로 3벳은 올인으로, 아니면 폴드합니다${role === 'BB' ? '(BB는 좋은 가격 덕분에 콜도 선택지)' : ''}.`);
+      out.bullets.push(`${opener.label}와의 대결만 보면 올인 EV ≈ 폴드 확률 ${fpct((1 - rs.pc) * 100)} × 현재 팟 ${fbb(eng.RS.potBefore)} + 콜 확률 ${fpct(rs.pc * 100)} × (에퀴티 ${fpct(rs.eqc * 100)} × 최종 팟 ${fbb(eng.RS.finalPot)} − ${fbb(eff - eng.h0)}) = ${fev(rs.evHU)}. 상대는 오픈 레인지의 약 ${fpct(eng.RS.callPctOfOpen)}로 콜합니다(균형 근사).`);
+      if (eng.RS.nBehind > 0) out.bullets.push(`내 뒤 ${eng.RS.nBehind}명 중 누군가 TT+/AQ+로 깨어날 확률 ${fpct(eng.RS.pWake * 100)}를 반영하면(그때 내 에퀴티 ${fpct(rs.eqw * 100)}) 최종 올인 EV = <b>${fev(rs.ev)}</b>입니다.`);
+      else out.bullets.push(`BB라 뒤에 남은 사람이 없으므로 최종 올인 EV = <b>${fev(rs.ev)}</b>입니다.`);
+      if (role === 'BB') out.bullets.push(`콜 EV(실현율 ${Math.round(realization(h, eff, false) * 100)}% 근사) = 실현율 × ${fpct(e.eqO * 100)} × ${fbb(eng.potAfter)} − ${fbb(eng.toCall)} = <b>${fev(e.evC)}</b>. 실현율은 포지션이 없을 때 에퀴티를 다 가져가지 못하는 정도를 반영합니다.`);
+      out.refs.push('kill', 'mop');
+    } else {
+      if (role === 'IP') out.bullets.push('포지션이 있는 자리(IP)는 3벳과 콜을 섞습니다. 콜은 포스트플랍에서 잘 플레이되는 페어·수딧 브로드웨이·수딧 커넥터 위주로 구성합니다.');
+      if (role === 'SB') out.bullets.push('SB는 포스트플랍 내내 포지션이 없고 BB가 뒤에 남아 스퀴즈 위험까지 있어 <b>3벳 아니면 폴드</b>가 기본입니다.');
+      if (role === 'BB') out.bullets.push(`BB는 이미 1BB를 냈고 마지막에 행동하므로 가격이 가장 좋습니다. 콜 ${fbb(eng.toCall)}로 ${fbb(eng.potAfter)} 팟을 다투므로 필요 에퀴티는 <b>${fpct(req * 100)}</b>(실현율 감안 전)입니다.`);
+      out.bullets.push(`3벳 레인지 = 밸류(상대 레인지를 압도하는 QQ+, AK 등) + 블러프(A5s~A2s처럼 A 블로커가 있고 플레이어빌리티가 좋은 핸드). 사이즈는 IP 약 <b>3배</b>, OOP(블라인드) 약 <b>4배</b>입니다.`);
+      if (e.filtered) out.bullets.push(`스몰 페어·작은 수딧 커넥터의 콜은 임플라이드 오즈에 기대는데, 플랍 셋 확률은 약 11.8%(약 7.5:1)입니다. 남은 스택이 콜 금액의 15~20배 이상이어야 하는데 지금은 ${r1(eff / eng.toCall)}배라 폴드합니다.`);
+      if (e.zone === 'trans' && eng.RS) { out.kpis.push(['올인 EV', fev(e.evJ)]); out.bullets.push(`유효 ${fbb(eff)}에서는 3벳 올인도 강력한 무기입니다. 이 핸드의 올인 EV ≈ <b>${fev(e.evJ)}</b>(상대 콜 레인지는 오픈의 약 ${fpct(eng.RS.callPctOfOpen)}).`); }
+      out.refs.push('mpt', 'nltp');
+    }
+    const best = Object.keys(e.f).filter(f => e.f[f] === 'best');
+    out.why = {
+      fold: e.f.fold === 'ok' ? '혼합 핸드라 폴드도 허용 범위입니다.' : `${hn} 핸드는 이 상황에서 ${best.map(f => famKo(sc, f)).join('/')} 레인지에 들어갑니다. 상대 레인지 대비 에퀴티 ${fpct(e.eqO * 100)}로 폴드는 너무 타이트합니다.`,
+      call: e.f.call === 'ok' || e.f.call === 'best' ? (e.zone === 'short' && role !== 'BB' ? 'AA·KK는 플랫 콜로 트랩하는 것도 가능합니다.' : '콜도 허용되는 혼합 핸드입니다.') : e.zone === 'short' && role !== 'BB' ? `유효 ${fbb(eff)}에서 플랫 콜은 스택의 큰 부분을 쓴 뒤 포스트플랍에서 어려운 결정을 남깁니다. 3벳 올인 아니면 폴드가 기본입니다.` : e.filtered ? `셋 마이닝에 필요한 스택(콜 금액의 15~20배)이 부족합니다(현재 ${r1(eff / eng.toCall)}배).` : role === 'SB' ? 'SB 플랫 콜은 포지션이 없고 BB의 스퀴즈에 노출됩니다. 3벳 레인지가 아니면 폴드합니다.' : `콜 레인지 밖입니다. 상대 레인지 대비 에퀴티 ${fpct(e.eqO * 100)}${role === 'BB' ? `가 실현율을 감안한 필요치에 못 미칩니다.` : '로 부족하고, 도미네이트당하기 쉽습니다.'}`,
+      raise: e.f.raise === 'ok' || e.f.raise === 'best' ? '3벳도 좋은 선택입니다.' : e.zone === 'short' ? '작은 3벳은 스택의 큰 부분을 넣은 뒤 올인에 폴드할 수 없게 만듭니다. 3벳한다면 올인입니다.' : `${hn} 핸드는 3벳 레인지(밸류 또는 블러프) 밖입니다. 3벳하면 상대의 더 강한 핸드에만 콜·4벳을 받습니다.`,
+      allin: e.f.allin === 'ok' || e.f.allin === 'best' ? `올인 EV ${e.evJ != null ? fev(e.evJ) : ''}로 수익이 납니다.` : e.zone === 'short' || e.zone === 'trans' ? `올인 EV ${fev(e.evJ)}로 손해입니다. 상대가 콜하는 레인지에 비해 에퀴티가 부족합니다.` : `딥 스택(유효 ${fbb(eff)})에서 3벳 올인은 오버베팅입니다. 상대는 더 좋은 핸드로만 콜합니다.`,
+    };
+    out.chart = engineChart(sc, h, `${pos} vs ${opener.label} 오픈 ${fbb(sc.R)} · 유효 ${fbb(eff)}`);
+  }
+
+  if (sc.type === 'vsJam') {
+    const jammer = sc.players[sc.villIdx];
+    out.kpis.push(['내 에퀴티', fpct(e.eq * 100)], ['필요 에퀴티', fpct(eng.req * 100)], ['콜 EV', fev(e.ev)]);
+    out.bullets.push(`필요 에퀴티 = 콜 금액 / 최종 팟 = ${fbb(eng.risk)} / ${fbb(eng.finalPot)} = <b>${fpct(eng.req * 100)}</b>. 블라인드·앤티(데드 머니)가 있어 50%보다 낮습니다.`);
+    out.bullets.push(`${jammer.label}(뒤에 ${jammer.k}명, ${fbb(eng.J)})의 내쉬 푸시 레인지는 약 <b>${fpct(eng.pushPct)}</b>입니다. 이 레인지 상대로 ${hn}의 에퀴티는 <b>${fpct(e.eq * 100)}</b>입니다.`);
+    out.bullets.push(`콜 EV = ${fpct(e.eq * 100)} × ${fbb(eng.finalPot)} − ${fbb(eng.risk)} = <b>${fev(e.ev)}</b> → ${e.ev >= 0 ? '콜' : '폴드'}.`);
+    if (eng.behind > 0) out.bullets.push(`아직 뒤에 ${eng.behind}명이 남아 있어 오버콜 위험이 있습니다. 경계 핸드는 조금 더 타이트하게 잡는 것이 안전합니다.`);
+    out.bullets.push('머니 버블·파이널 테이블처럼 ICM(상금 구조) 압력이 클 때는 chipEV보다 더 높은 에퀴티가 필요합니다.');
+    out.refs.push('mop', 'kill');
+    out.why = {
+      fold: e.f.fold === 'ok' ? 'EV 차이가 ±0.15BB 이내인 경계 상황이라 폴드도 큰 실수가 아닙니다.' : `콜 EV ${fev(e.ev)}: 에퀴티 ${fpct(e.eq * 100)}가 필요 에퀴티 ${fpct(eng.req * 100)}보다 높아 폴드는 칩을 버리는 선택입니다.`,
+      call: e.f.call === 'ok' ? 'EV 차이가 ±0.15BB 이내인 경계 상황이라 콜도 큰 실수가 아닙니다.' : `콜 EV ${fev(e.ev)}: 에퀴티 ${fpct(e.eq * 100)}가 필요 에퀴티 ${fpct(eng.req * 100)}에 못 미칩니다.`,
+    };
+    out.chart = engineChart(sc, h, `${jammer.label} ${fbb(eng.J)} 올인에 대한 콜 레인지 (${pos})`);
+  }
+
+  if (sc.type === 'vsLimp') {
+    const n = eng.n, role = eng.role, limpLabels = sc.limpers.map(i => sc.players[i].label).join(', ');
+    out.kpis.push(['유효 스택', fbb(eff)], ['림퍼', `${n}명`], ['권장 아이소', fbb(eng.target)]);
+    out.bullets.push(`${limpLabels}의 림프는 오픈 레이즈를 하지 않은 만큼 레인지가 약하고 상한이 있습니다(capped). 강한 핸드는 <b>아이솔레이션 레이즈</b>로 헤즈업과 주도권을 만듭니다.`);
+    if (eng.zone === 'short') {
+      out.bullets.push(`유효 ${fbb(eff)} 이하에서는 아이소 레이즈 후 올인을 맞으면 폴드할 수 없으므로 <b>올인 아니면 ${role === 'BB' ? '체크' : '폴드'}</b>입니다. 림퍼의 데드 머니가 있어 일반 푸시 레인지보다 조금 넓게 올인합니다.`);
+      out.bullets.push(`${hn}의 내쉬 푸시 상한은 ${e.pth >= 25 ? '25BB+' : fbb(e.pth)}입니다(데드 머니 보정 +1.5BB 적용).`);
+      out.refs.push('kill');
+    } else {
+      out.bullets.push(`아이소 사이즈 공식: <b>${role === 'IP' ? '3BB' : '4BB(포지션 없음 +1)'} + 림퍼당 1BB = ${fbb(eng.target)}</b>. 림퍼가 많을수록 팟이 커지므로 더 크게 올립니다.`);
+      out.bullets.push(`아이소 레인지는 일반 오픈보다 조금 타이트합니다(약 ${fpct(rangePct(eng.isoW))}). ${hn} 핸드는 ${e.iso >= 1 ? '<b>아이소 레인지 안</b>' : e.iso > 0 ? '<b>경계 핸드</b>' : '<b>아이소 레인지 밖</b>'}입니다.`);
+      if (role === 'BB') out.bullets.push('BB는 공짜로 플랍을 볼 수 있으므로 아이소 레인지 밖의 핸드는 체크합니다.');
+      else if (e.overlimpOK || e.f.call === 'best') out.bullets.push('스몰 페어·수딧 커넥터·수딧 에이스는 멀티웨이 팟에서 싸게 플랍을 보는 오버림프가 좋습니다. 셋·플러시·스트레이트를 맞혔을 때 큰 팟을 이길 수 있기 때문입니다(임플라이드 오즈).');
+      out.refs.push('nltp', 'mpt');
+    }
+    out.why = {
+      fold: e.f.fold === 'ok' ? '경계 핸드라 폴드도 허용 범위입니다.' : '이 핸드는 림퍼들을 상대로 수익을 낼 만큼 강합니다.',
+      call: role === 'BB' ? (e.f.call === 'ok' || e.f.call === 'best' ? '체크로 싸게 플랍을 보는 것도 괜찮습니다.' : '강한 핸드로 체크하면 약한 림퍼들에게 공짜 카드를 주고 밸류를 잃습니다.') : e.f.call === 'ok' || e.f.call === 'best' ? '싸게 멀티웨이 플랍을 보는 것도 괜찮습니다.' : eng.zone === 'short' ? '숏스택에서 오버림프는 칩만 줄어들고 주도권이 없습니다.' : '이 핸드로 림프로 따라가면 주도권도 없고 멀티웨이에서 도미네이트당하기 쉽습니다.',
+      raise: e.f.raise === 'ok' || e.f.raise === 'best' ? '아이소 레이즈도 좋은 선택입니다.' : eng.zone === 'short' ? '15BB 이하에서 아이소 레이즈 후 올인을 맞으면 폴드할 수 없습니다. 올인이 낫습니다.' : `${hn} 핸드는 아이소 레이즈 레인지 밖입니다. 레이즈하면 림퍼 중 강한 핸드에 리림프·콜을 당해 포지션 없이 끌려갑니다.`,
+      allin: e.f.allin === 'ok' || e.f.allin === 'best' ? '올인도 수익이 나는 선택입니다.' : eng.zone === 'short' ? `푸시 상한(${e.pth >= 25 ? '25BB+' : fbb(e.pth)})이 현재 스택보다 낮습니다.` : `유효 ${fbb(eff)}에서 올인은 과합니다. 약한 림퍼는 폴드하고 강한 핸드만 콜합니다.`,
+    };
+    out.chart = engineChart(sc, h, `${pos} vs 림퍼 ${n}명 · 유효 ${fbb(eff)}`);
+  }
+  out.refs = [...new Set(out.refs)];
+  return out;
+}
+
+/* ---- chart builders ---- */
+function categoryOf(f) {
+  const best = ['allin', 'raise', 'call'].filter(x => f[x] === 'best');
+  if (best.length >= 2) { const s = best.join(); return s.includes('raise') && s.includes('call') ? 'mix-rc' : s.includes('raise') ? 'mix-rj' : 'mix-cj'; }
+  const famCls = { allin: 'jam', raise: 'raise', call: 'call' };
+  if (best.length === 1) return famCls[best[0]] + (f.fold === 'ok' ? '-mix' : '');
+  const okf = ['allin', 'raise', 'call'].find(x => f[x] === 'ok');
+  return okf ? famCls[okf] + '-mix' : 'fold';
+}
+function engineChart(sc, h, title) {
+  const eng = engineFor(sc), cells = [], counts = {};
+  for (let x = 0; x < 169; x++) {
+    sc._h = x;
+    const cat = categoryOf(eng.evalHand(x).f);
+    cells.push({ cls: cat, txt: handName(x) });
+    counts[cat] = (counts[cat] || 0) + COMBOS[x];
+  }
+  sc._h = h;
+  return { title, cells, me: h, counts, kind: 'engine' };
+}
+function nashChart(sc, k, eff, h) {
+  const cells = [], counts = {};
+  for (let x = 0; x < 169; x++) {
+    const t = pushTh(sc, k, x);
+    const cls = t >= eff ? 'jam' : t >= eff - 3 ? 'jam-mix' : 'fold';
+    cells.push({ cls, txt: handName(x), sub: t >= 25 ? '25+' : t > 0 ? String(r1(t)) : '–' });
+    counts[cls] = (counts[cls] || 0) + COMBOS[x];
+  }
+  return { title: `내쉬 푸시 차트 · ${sc.players[sc.heroIdx].label}(뒤에 ${k}명) · 숫자 = 최대 푸시 스택(BB)`, cells, me: h, counts, kind: 'nash' };
+}
+
+/* =====================================================================
+   State, persistence, rendering
+   ===================================================================== */
+const STORE_KEY = 'pfdrill.v1';
+const S = {
+  settings: { players: 'rand', depth: 'rand', ante: 'bb', bias: 'balanced', types: { rfi: true, vsOpen: true, vsJam: true, vsLimp: true } },
+  stats: { played: 0, best: 0, ok: 0, bad: 0, streak: 0, bestStreak: 0, byType: {} },
+  history: [],
+  sc: null, answered: null,
+};
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify({ settings: S.settings, stats: S.stats, history: S.history.slice(0, 40) })); } catch (e) { /* storage unavailable */ } }
+function load() { try { const d = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); if (d) { Object.assign(S.settings, d.settings || {}); Object.assign(S.stats, d.stats || {}); S.history = d.history || []; } } catch (e) { /* ignore */ } }
+
+const $ = id => document.getElementById(id);
+
+function newHand() {
+  const st = S.settings;
+  const sc = genScenario(st);
+  const eng = engineFor(sc);
+  const pRedraw = st.bias === 'real' ? 0 : st.bias === 'edge' ? 0.9 : 0.55;
+  let hand = dealHand();
+  for (let t = 0; t < 25 && pRedraw > 0; t++) {
+    sc._h = hand.h;
+    if (!eng.trivial(hand.h) || Math.random() > pRedraw) break;
+    hand = dealHand();
+  }
+  sc.hand = hand; sc._h = hand.h;
+  sc.options = buildOptions(sc);
+  S.sc = sc; S.answered = null;
+  if (ENGINES.size > 60) { const keep = ENGINES.get(sc.id); ENGINES.clear(); ENGINES.set(sc.id, keep); }
+  render();
+}
+
+function render() { renderScores(); renderTable(); renderHeroRow(); renderActions(); renderPanel(); renderHistory(); }
+
+function renderScores() {
+  const s = S.stats, p = s.played || 0;
+  $('sPlayed').textContent = p;
+  $('sBest').innerHTML = `${p ? Math.round(s.best / p * 100) : 0}<small>%</small>`;
+  $('sOk').innerHTML = `${p ? Math.round((s.best + s.ok) / p * 100) : 0}<small>%</small>`;
+  $('sStreak').innerHTML = `${s.streak}<small> · 최고 ${s.bestStreak}</small>`;
+}
+
+function seatStatus(sc, p) {
+  if (p.st === 'hero') return { txt: '나 · 행동 차례', cls: 'hero' };
+  if (p.st === 'fold') return { txt: '폴드', cls: 'folded' };
+  if (p.st === 'raise') return { txt: `레이즈 ${fbb(p.bet)}`, cls: 'aggr' };
+  if (p.st === 'jam') return { txt: `올인 ${fbb(p.bet)}`, cls: 'jam' };
+  if (p.st === 'limp') return { txt: p.k === 1 ? '컴플리트' : '림프', cls: 'limp' };
+  return { txt: p.k === 1 ? 'SB · 대기' : p.k === 0 ? 'BB · 대기' : '대기', cls: '' };
+}
+function renderTable() {
+  const sc = S.sc, box = $('tableBox');
+  box.querySelectorAll('.seat,.bet,.dealer').forEach(n => n.remove());
+  const N = sc.N, narrow = box.clientWidth < 560;
+  const rx = 45, ry = narrow ? 44 : 43;
+  let deadPot = sc.ante, betsOnTable = 0;
+  sc.players.forEach(p => {
+    const s = (p.i - sc.heroIdx + N) % N;
+    const ang = (90 + s * 360 / N) * Math.PI / 180;
+    const x = 50 + rx * Math.cos(ang), y = 50 + ry * Math.sin(ang);
+    const stt = seatStatus(sc, p);
+    const el = document.createElement('div');
+    el.className = `seat ${stt.cls}`;
+    el.style.left = x + '%'; el.style.top = y + '%';
+    const remaining = p.bb - p.bet - (p.k === 0 ? sc.ante : 0);
+    const inHand = p.st !== 'fold';
+    el.innerHTML = `${inHand && p.st !== 'hero' ? '<div class="backs" aria-hidden="true"><i></i><i></i></div>' : ''}
+      <div class="plate"><span class="order" title="프리플랍 행동 순서">${p.i + 1}</span>
+        <div class="pos">${esc(p.label)}</div>
+        <div class="stk">${p.st === 'jam' ? '0' : r1(Math.max(0, remaining))}<small>BB</small></div>
+        <div class="chipsline">${fchips(Math.max(0, remaining) * sc.BBc)}</div>
+        <span class="st">${esc(stt.txt)}</span></div>`;
+    box.appendChild(el);
+    // chips in front: blinds & bets of players still in; folded blinds go to the pot
+    if (p.bet > 0) {
+      if (p.st === 'fold') deadPot += p.bet;
+      else {
+        betsOnTable += p.bet;
+        const b = document.createElement('div');
+        b.className = 'bet' + (p.st === 'jam' ? ' big' : '');
+        b.style.left = (50 + rx * 0.6 * Math.cos(ang)) + '%'; b.style.top = (50 + ry * 0.56 * Math.sin(ang)) + '%';
+        b.textContent = r1(p.bet);
+        b.title = `${p.label} ${fbb(p.bet)}`;
+        box.appendChild(b);
+      }
+    }
+    if (p.label === 'BTN' || (N === 3 && p.k === 2)) {
+      const d = document.createElement('div'); d.className = 'dealer'; d.textContent = 'D'; d.title = '딜러 버튼';
+      const a2 = ang + (narrow ? 0.32 : 0.22);
+      d.style.left = (50 + rx * 0.74 * Math.cos(a2)) + '%'; d.style.top = (50 + ry * 0.7 * Math.sin(a2)) + '%';
+      box.appendChild(d);
+    }
+  });
+  const total = deadPot + betsOnTable;
+  $('pot').innerHTML = `<span class="lbl">Pot</span><span class="amt">${fbb(total)}</span><span class="sub">${sc.ante ? `앤티 ${fbb(sc.ante)} 포함` : '앤티 없음'} · ${fchips(total * sc.BBc)}</span>`;
+  $('blindsTag').textContent = `블라인드 ${fchips(sc.BBc / 2)} / ${fchips(sc.BBc)}${sc.ante ? ` · BB 앤티 ${fchips(sc.BBc)}` : ''}`;
+  sc._pot = total;
+}
+
+function situationLine(sc) {
+  const hero = sc.players[sc.heroIdx];
+  if (sc.type === 'rfi') return `앞의 ${sc.heroIdx}명이 모두 폴드했습니다. <b>첫 진입</b> 기회입니다.`;
+  if (sc.type === 'vsOpen') { const v = sc.players[sc.villIdx]; return `<b>${v.label}</b>가 ${fbb(sc.R)}로 오픈 레이즈, 나머지는 폴드했습니다.`; }
+  if (sc.type === 'vsJam') { const v = sc.players[sc.villIdx]; return `<b>${v.label}</b>가 ${fbb(sc.players[sc.villIdx].bet)} <b>올인</b>, 나머지는 폴드했습니다.`; }
+  const ls = sc.limpers.map(i => sc.players[i].label);
+  return `<b>${ls.join(', ')}</b>${ls.length > 1 ? '가 림프' : (sc.players[sc.limpers[0]].k === 1 ? '가 컴플리트(림프)' : '가 림프')}했습니다.${hero.k === 0 ? ' BB인 당신은 체크로 플랍을 볼 수도 있습니다.' : ''}`;
+}
+function renderHeroRow() {
+  const sc = S.sc, hero = sc.players[sc.heroIdx], [c1, c2] = sc.hand.cards, h = sc.hand.h;
+  const card = c => `<div class="pcard s-${cardSuit(c)}" aria-label="${cardRank(c)}${SUIT_SYM[cardSuit(c)]}"><span class="r">${cardRank(c) === 'T' ? '10' : cardRank(c)}</span><span class="s">${SUIT_SYM[cardSuit(c)]}</span></div>`;
+  const kindKo = { pair: '포켓 페어', suited: '수딧', offsuit: '오프수트' }[handKind(h)];
+  const strip = sc.players.map(p => {
+    const c = p.i === sc.heroIdx ? 'me' : p.st === 'fold' ? 'f' : p.st === 'raise' ? 'a' : p.st === 'jam' ? 'j' : p.st === 'limp' ? 'l' : '';
+    return `<span class="os ${c}">${p.i + 1} ${esc(p.label)}${p.i === sc.heroIdx ? ' · 나' : ''}</span>`;
+  }).join('');
+  $('heroRow').innerHTML = `<div class="cards">${card(c1)}${card(c2)}</div>
+    <div class="hand-meta"><span class="hn">${handName(h)}</span><span class="hk">${kindKo}</span></div>
+    <div class="where"><div class="line1"><b>${esc(hero.label)}</b> · ${sc.N}명 중 <b>${sc.heroIdx + 1}번째</b> 행동 · 내 뒤로 ${hero.k}명</div>
+      <div class="line2">${situationLine(sc)}</div>
+      <div class="order-strip" aria-label="프리플랍 행동 순서">${strip}</div></div>`;
+}
+
+function renderActions() {
+  const sc = S.sc, box = $('actions'), ans = S.answered;
+  const hero = sc.players[sc.heroIdx];
+  box.innerHTML = '';
+  sc.options.forEach(o => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.id = 'act-' + o.id;
+    b.className = `act fam-${o.fam}`;
+    let sub = '';
+    if (o.fam === 'raise' || o.fam === 'allin') sub = `${fchips(o.amount * sc.BBc)} · 스택의 ${Math.round(Math.min(1, o.amount / wager(sc, hero)) * 100)}%`;
+    else if (o.fam === 'call' && !(sc.type === 'vsLimp' && hero.k === 0)) sub = `추가 ${fbb(Math.max(0, o.amount - (hero.k === 0 ? 1 : hero.k === 1 ? 0.5 : 0)))}`;
+    b.innerHTML = `<span class="key">${o.key}</span><span class="a1">${esc(o.fam === 'allin' ? `올인 ${fbb(o.amount)}` : o.label)}</span><span class="a2">${sub || '&nbsp;'}</span>`;
+    if (ans) {
+      b.disabled = true;
+      const g = ans.grades[o.id];
+      if (o.id === ans.choice) { b.classList.add('chosen', 'v-' + g.v); b.insertAdjacentHTML('beforeend', `<span class="tag t-${g.v}">${{ best: '최선', ok: '허용', bad: '실수' }[g.v]}</span>`); }
+      else if (g.v === 'best') { b.classList.add('rec'); b.insertAdjacentHTML('beforeend', '<span class="tag t-best">추천</span>'); }
+      else b.classList.add('dim');
+    } else b.addEventListener('click', () => answer(o.id));
+    box.appendChild(b);
+  });
+  $('qText').textContent = ans ? '결과를 확인하고 다음 상황으로 넘어가세요.' : '무엇을 하시겠습니까?';
+}
+
+function factsHTML(sc) {
+  const hero = sc.players[sc.heroIdx];
+  const total = sc.players.reduce((s, p) => s + p.bb, 0), avg = total / sc.N;
+  const share = hero.bb / total * 100;
+  const rank = [...sc.players].sort((a, b) => b.bb - a.bb).findIndex(p => p.i === sc.heroIdx) + 1;
+  const M = hero.bb / D_OF(sc), hz = harrington(M);
+  const toCall = sc.type === 'vsOpen' ? sc.R : sc.type === 'vsJam' ? sc.eff : sc.type === 'vsLimp' ? 1 : 1;
+  const posted = hero.k === 0 ? 1 : hero.k === 1 ? 0.5 : 0;
+  return `<dl class="facts">
+    <div><dt>내 스택</dt><dd>${fbb(hero.bb)}<small>${fchips(hero.chips)}</small></dd></div>
+    <div><dt>유효 스택</dt><dd>${fbb(sc.eff)}<small>${sc.type === 'rfi' ? '뒤 플레이어 중 최대와 비교' : sc.type === 'vsLimp' ? '림퍼·뒤 플레이어 기준' : '상대 스택 기준'}</small></dd></div>
+    <div><dt>M-비율 (스택 ÷ 블라인드+앤티)</dt><dd>${r1(M)}<span class="zone-pill z-${hz.key}">${hz.name}</span></dd></div>
+    <div><dt>테이블 칩 순위</dt><dd>${rank} / ${sc.N}<small>평균 ${fbb(avg)}</small></dd></div>
+    <div><dt>테이블 총 칩</dt><dd>${fchips(total * sc.BBc)}<small>${fbb(total)}</small></dd></div>
+    <div><dt>내 칩 비중</dt><dd>${fpct(share)}<div class="share-bar" aria-hidden="true"><i style="width:${Math.min(100, share).toFixed(1)}%"></i></div></dd></div>
+    <div><dt>현재 팟</dt><dd>${fbb(sc._pot || 0)}</dd></div>
+    <div><dt>콜 금액</dt><dd>${sc.type === 'rfi' ? (hero.k === 1 ? '0.5BB (림프 시)' : '1BB (림프 시)') : hero.k === 0 && sc.type === 'vsLimp' ? '0 (체크 가능)' : fbb(Math.max(0, toCall - posted))}</dd></div>
+  </dl>`;
+}
+
+function renderPanel() {
+  const sc = S.sc, p = $('panel'), ans = S.answered;
+  if (!ans) {
+    p.innerHTML = `<h2>스택 & 상황</h2>${factsHTML(sc)}
+      <p class="hint">${TYPE_KO[sc.type]} · ${sc.N}명 테이블 · 스택은 블라인드·베팅을 뺀 남은 칩 기준으로 좌석에 표시됩니다(유효 스택은 이미 낸 블라인드 포함).</p>
+      <p class="hint">결정을 내리면 전략서 이론과 레인지 차트, EV 계산으로 해설합니다.</p>`;
+    return;
+  }
+  const g = ans.grades[ans.choice], opt = sc.options.find(o => o.id === ans.choice);
+  const ex = ans.explain;
+  const bestOpts = sc.options.filter(o => ans.grades[o.id].v === 'best');
+  const okOpts = sc.options.filter(o => ans.grades[o.id].v === 'ok');
+  const optLabel = o => o.fam === 'allin' ? `올인 ${fbb(o.amount)}` : o.label;
+  const recTxt = bestOpts.length ? bestOpts.map(optLabel).join(' / ') : okOpts.map(optLabel).join(' / ');
+  const head = { best: ['✓', '최선의 플레이'], ok: ['△', '허용 가능 (차선)'], bad: ['✗', '실수'] }[g.v];
+  let whyTxt = ex.why[opt.fam] || '';
+  if (g.v === 'best') whyTxt = bestOpts.length > 1 ? '이 핸드는 혼합 전략 구간이라 추천 선택지 중 어느 것을 골라도 좋습니다.' : '이론과 일치하는 선택입니다.';
+  if (opt.fam === 'raise' && g.sizeMsg && g.famV !== 'bad') whyTxt = (g.famV === 'best' ? '레이즈 방향은 맞습니다. ' : whyTxt + ' ') + g.sizeMsg;
+  const kpis = ex.kpis.map(([k, v]) => `<div class="kpi ${/^[+]/.test(v) ? 'pos' : /^−/.test(v) ? 'neg' : ''}"><span class="kk">${esc(k)}</span><span class="kv">${esc(v)}</span></div>`).join('');
+  p.innerHTML = `
+    <div class="verdict v-${g.v}"><div class="vh"><span class="mark" aria-hidden="true">${head[0]}</span>${head[1]}</div>
+      <div class="vs">내 선택: <b>${esc(optLabel(opt))}</b> · ${handName(sc.hand.h)} · ${esc(sc.players[sc.heroIdx].label)}</div></div>
+    <div class="rec-line">추천: <b>${esc(recTxt)}</b>${okOpts.length && bestOpts.length ? `<br><span class="alt">허용: ${esc(okOpts.map(optLabel).join(' / '))}</span>` : ''}</div>
+    <div class="why"><div class="wt">내 선택에 대한 해설</div>${whyTxt}</div>
+    <div class="kpis">${kpis}</div>
+    <div><h2 style="margin-bottom:6px">핵심 이론</h2><ul class="theory">${ex.bullets.map(b => `<li>${b}</li>`).join('')}</ul></div>
+    ${chartHTML(ex.chart)}
+    <div><h2 style="margin-bottom:6px">참고</h2><ol class="refs">${ex.refs.map(r => `<li>${REFS[r].t} — ${REFS[r].n}. <a href="${REFS[r].u}" target="_blank" rel="noopener">링크</a></li>`).join('')}</ol></div>
+    <button class="next" type="button" id="btnNext">다음 상황 <span class="kbd">Space</span></button>`;
+  $('btnNext').addEventListener('click', newHand);
+}
+
+function chartHTML(c) {
+  if (!c) return '';
+  const LEG = {
+    raise: ['레이즈', 'var(--c-raise)'], 'raise-mix': ['레이즈(경계)', 'var(--c-raise-mix)'],
+    call: [S.sc.type === 'vsLimp' && S.sc.players[S.sc.heroIdx].k === 0 ? '체크' : S.sc.type === 'rfi' || S.sc.type === 'vsLimp' ? '림프/콜' : '콜', 'var(--c-call)'], 'call-mix': ['콜(경계)', 'var(--c-call-mix)'],
+    jam: ['올인', 'var(--c-jam)'], 'jam-mix': [c.kind === 'nash' ? '3BB 차이 이내' : '올인(경계)', 'var(--c-jam-mix)'],
+    'mix-rc': ['레이즈/콜 혼합', 'linear-gradient(135deg,var(--c-raise) 50%,var(--c-call) 50%)'],
+    'mix-rj': ['레이즈/올인 혼합', 'linear-gradient(135deg,var(--c-raise) 50%,var(--c-jam) 50%)'],
+    'mix-cj': ['콜/올인 혼합', 'linear-gradient(135deg,var(--c-call) 50%,var(--c-jam) 50%)'],
+    fold: [S.sc.type === 'vsLimp' && S.sc.players[S.sc.heroIdx].k === 0 ? '체크' : '폴드', 'var(--c-fold)'],
+  };
+  const order = ['jam', 'jam-mix', 'mix-rj', 'raise', 'raise-mix', 'mix-rc', 'call', 'call-mix', 'mix-cj', 'fold'];
+  const legend = order.filter(k => c.counts[k]).map(k => `<span><i style="background:${LEG[k][1]}"></i>${LEG[k][0]} ${fpct(c.counts[k] / 1326 * 100)}</span>`).join('');
+  const cells = c.cells.map((x, i) => `<div class="cell ${x.cls}${i === c.me ? ' me' : ''}" title="${x.txt}${x.sub ? ' · ' + x.sub + 'BB' : ''}">${c.kind === 'nash' ? `<span>${x.txt}<span class="sub">${x.sub}</span></span>` : x.txt}</div>`).join('');
+  return `<div class="chart"><div class="chart-title">${esc(c.title)}</div>
+    <div class="chart-scroll"><div class="grid13" role="img" aria-label="13x13 핸드 레인지 차트, 내 핸드 ${handName(c.me)} 강조">${cells}</div></div>
+    <div class="legend">${legend}<span><i style="outline:2px solid var(--accent);outline-offset:-2px;background:transparent"></i>내 핸드</span></div></div>`;
+}
+
+function computeAnswer(sc, id) {
+  const h = sc.hand.h, grades = {};
+  sc.options.forEach(o => { grades[o.id] = gradeOption(sc, o, h); });
+  return { choice: id, grades, explain: explain(sc, h) };
+}
+function answer(id) {
+  const sc = S.sc; if (S.answered) return;
+  const h = sc.hand.h;
+  S.answered = computeAnswer(sc, id);
+  const grades = S.answered.grades, g = grades[id];
+  const st = S.stats; st.played++; st[g.v]++;
+  st.streak = g.v === 'bad' ? 0 : st.streak + 1; st.bestStreak = Math.max(st.bestStreak, st.streak);
+  const bt = st.byType[sc.type] || (st.byType[sc.type] = { p: 0, best: 0, ok: 0, bad: 0 }); bt.p++; bt[g.v]++;
+  const opt = sc.options.find(o => o.id === id), optLabel = o => o.fam === 'allin' ? `올인 ${fbb(o.amount)}` : o.label;
+  const bestOpts = sc.options.filter(o => grades[o.id].v === 'best');
+  S.history.unshift({ n: st.played, type: sc.type, N: sc.N, pos: sc.players[sc.heroIdx].label, hand: handName(h), eff: r1(sc.eff), mine: optLabel(opt), rec: (bestOpts.length ? bestOpts : sc.options.filter(o => grades[o.id].v === 'ok')).map(optLabel).join(' / '), v: g.v });
+  S.history = S.history.slice(0, 40);
+  save();
+  renderScores(); renderActions(); renderPanel(); renderHistory();
+  if (window.matchMedia && window.matchMedia('(max-width: 980px)').matches) $('panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderHistory() {
+  const tb = $('histTable').querySelector('tbody');
+  tb.innerHTML = S.history.map(r => `<tr><td class="n">${r.n}</td><td>${TYPE_KO[r.type]} · ${r.N}명</td><td>${esc(r.pos)}</td><td class="n">${esc(r.hand)}</td><td class="n">${r.eff}BB</td><td><span class="vdot ${r.v}"></span>${esc(r.mine)}</td><td>${esc(r.rec)}</td></tr>`).join('');
+  $('histEmpty').hidden = S.history.length > 0;
+  $('byType').innerHTML = Object.keys(TYPE_KO).map(t => {
+    const b = S.stats.byType[t] || { p: 0, best: 0, ok: 0, bad: 0 };
+    const w = x => b.p ? (x / b.p * 100).toFixed(1) : 0;
+    return `<div class="bt"><span>${TYPE_KO[t]}</span><span class="bar" aria-hidden="true"><i style="width:${w(b.best)}%;background:var(--best)"></i><i style="width:${w(b.ok)}%;background:var(--ok)"></i><i style="width:${w(b.bad)}%;background:var(--bad)"></i></span><span class="pc">${b.p ? Math.round((b.best + b.ok) / b.p * 100) + '%' : '–'} <small style="color:var(--muted)">(${b.p})</small></span></div>`;
+  }).join('');
+}
+
+function renderRefList() {
+  $('refList').innerHTML = Object.values(REFS).map(r => `<li>${r.t} — ${r.n}. <a href="${r.u}" target="_blank" rel="noopener">링크</a>${r.u2 ? ` · <a href="${r.u2}" target="_blank" rel="noopener">M-비율</a>` : ''}</li>`).join('');
+}
+
+function bindControls() {
+  const st = S.settings;
+  const sel = (id, key) => { const el = $(id); el.value = st[key]; el.addEventListener('change', () => { st[key] = el.value; save(); newHand(); }); };
+  sel('optPlayers', 'players'); sel('optDepth', 'depth'); sel('optAnte', 'ante'); sel('optBias', 'bias');
+  document.querySelectorAll('#typeToggles .tog').forEach(b => {
+    b.setAttribute('aria-pressed', st.types[b.dataset.t] ? 'true' : 'false');
+    b.addEventListener('click', () => {
+      const t = b.dataset.t, on = !st.types[t];
+      if (!on && Object.values(st.types).filter(Boolean).length <= 1) return; // keep at least one
+      st.types[t] = on; b.setAttribute('aria-pressed', on ? 'true' : 'false'); save(); newHand();
+    });
+  });
+  $('btnNew').addEventListener('click', newHand);
+  let armed = false;
+  $('btnReset').addEventListener('click', () => {
+    if (!armed) { armed = true; $('btnReset').textContent = '정말 초기화할까요? 다시 누르면 삭제'; $('resetHint').textContent = ''; setTimeout(() => { armed = false; $('btnReset').textContent = '통계 초기화'; }, 4000); return; }
+    S.stats = { played: 0, best: 0, ok: 0, bad: 0, streak: 0, bestStreak: 0, byType: {} }; S.history = []; save();
+    armed = false; $('btnReset').textContent = '통계 초기화'; $('resetHint').textContent = '초기화했습니다.';
+    renderScores(); renderHistory();
+  });
+  document.addEventListener('keydown', ev => {
+    if (ev.target && /SELECT|INPUT|TEXTAREA/.test(ev.target.tagName)) return;
+    if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    const k = ev.key.toUpperCase();
+    if (S.answered) { if (k === ' ' || k === 'ENTER' || k === 'N') { ev.preventDefault(); newHand(); } return; }
+    let o = S.sc.options.find(x => x.key === k);
+    if (!o && k === 'F') o = S.sc.options.find(x => x.fam === 'call' && S.sc.players[S.sc.heroIdx].k === 0 && S.sc.type === 'vsLimp');
+    if (o) { ev.preventDefault(); answer(o.id); }
+  });
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (S.sc) renderTable(); }, 120); });
+}
+
+function boot(hot) {
+  load();
+  bindControls(); renderRefList();
+  const prev = hot && hot.state;
+  if (prev && prev.sc && prev.sc.players && prev.sc.hand) {
+    try {
+      S.sc = prev.sc; ENGINES.clear();
+      S.answered = prev.answered ? computeAnswer(S.sc, prev.answered.choice) : null;
+      render(); return;
+    } catch (e) { S.sc = null; S.answered = null; }
+  }
+  newHand();
+}
+if (typeof document !== 'undefined') {
+  window.claude?.hot?.snapshot?.(() => ({ state: { sc: S.sc && Object.assign({}, S.sc), answered: S.answered ? { choice: S.answered.choice } : null } }));
+  const start = d => boot(d || {});
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+}
+</script>
