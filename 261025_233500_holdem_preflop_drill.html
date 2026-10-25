@@ -265,10 +265,15 @@ table.hist{width:100%;border-collapse:collapse;font-size:.84rem;min-width:560px}
   <section class="controls" aria-label="훈련 설정">
     <label class="ctl" for="optPlayers">인원
       <select id="optPlayers">
-        <option value="rand">랜덤 (3–9명)</option>
+        <option value="rand">랜덤 (2–9명)</option>
         <option value="9">9명 풀링</option>
         <option value="8">8명</option>
+        <option value="7">7명</option>
         <option value="6">6명 (6-max)</option>
+        <option value="5">5명</option>
+        <option value="4">4명</option>
+        <option value="3">3명</option>
+        <option value="2">2명 (헤즈업)</option>
       </select>
     </label>
     <label class="ctl" for="optDepth">내 스택
@@ -458,6 +463,9 @@ const RFI_SRC = {
   1: { core: '22+, A2s+, K2s+, Q4s+, J6s+, T6s+, 96s+, 85s+, 75s+, 64s+, 54s, A2o+, K8o+, Q9o+, J9o+, T9o', mix: 'Q3s, Q2s, J5s, J4s, T5s, 95s, 74s, 63s, 53s, 43s, K7o, K6o, K5o, Q8o, J8o, T8o, 98o, 87o' },
 };
 const RFI = {}; for (const k in RFI_SRC) RFI[k] = chart(RFI_SRC[k]);
+// Heads-up: the button posts the SB, acts first preflop and has position postflop → opens ~80%
+const RFI_HU = chart({ core: '22+, A2s+, K2s+, Q2s+, J2s+, T2s+, 92s+, 82s+, 72s+, 62s+, 52s+, 42s+, 32s, A2o+, K2o+, Q2o+, J4o+, T5o+, 96o+, 86o+, 75o+, 65o, 54o', mix: 'J3o, J2o, T4o, T3o, 95o, 85o, 74o, 64o, 53o, 43o' });
+const rfiOf = (sc, k) => (sc.N === 2 && k === 1 ? RFI_HU : RFI[k]);
 const RFI_SEAT = { 8: '9인 UTG', 7: 'UTG+1', 6: 'UTG+2', 5: 'LJ', 4: 'HJ', 3: 'CO', 2: 'BTN', 1: 'SB' };
 
 // Facing a single open: hero role (IP / SB / BB) × opener group
@@ -478,13 +486,14 @@ const DEF_SRC = {
     MP: { r3: { core: 'QQ+, AQs+, AKo', mix: 'JJ, TT, AJs, KQs, AQo, A5s, A4s, 76s, 65s' }, call: { core: 'JJ-22, AJs-A2s, KQs-K7s, QJs-Q8s, J8s+, T8s+, 97s+, 86s+, 75s+, 64s+, 54s, AQo-A9o, KQo-KTo, QJo, QTo, JTo', mix: 'K6s-K4s, Q7s, J7s, T7s, 96s, 85s, 74s, 53s, A8o, A5o, K9o, Q9o, J9o, T9o' } },
     CO: { r3: { core: 'JJ+, AQs+, AKo, A5s, A4s', mix: 'TT, 99, AJs, ATs, KQs, KJs, AQo, AJo, KQo, A3s, K9s, Q9s, J9s, T8s, 97s, 86s' }, call: { core: 'TT-22, AJs-A2s, KJs-K2s, QJs-Q5s, J6s+, T6s+, 96s+, 85s+, 74s+, 63s+, 53s+, 43s, AQo-A5o, KQo-K9o, Q9o+, J9o+, T9o', mix: 'Q4s-Q2s, J5s, J4s, T5s, 95s, 84s, 73s, 52s, 42s, A4o-A2o, K8o, Q8o, J8o, T8o, 98o, 87o' } },
     BTN: { r3: { core: 'TT+, AJs+, AQo+, KQs, A5s, A4s', mix: '99-77, ATs-A8s, A3s, A2s, KJs, KTs, QJs, QTs, JTs, AJo, ATo, KQo, KJo, K9s, Q9s, J9s, T9s, 98s, 87s, 76s, 65s' }, call: { core: '99-22, AJs-A2s, KJs-K2s, QJs-Q2s, J2s+, T4s+, 95s+, 84s+, 74s+, 63s+, 53s+, 42s+, AJo-A2o, KQo-K6o, Q8o+, J8o+, T8o+, 97o+, 87o, 76o', mix: 'T3s, T2s, 94s, 93s, 83s, 73s, 62s, 52s, 32s, K5o-K2o, Q7o, Q6o, J7o, T7o, 96o, 86o, 75o, 65o, 54o' } },
+    HU: { r3: { core: '88+, A9s+, A5s, A4s, KTs+, QJs, ATo+, KJo+', mix: '77-55, A8s-A6s, A3s, A2s, K9s, K8s, QTs, Q9s, JTs, J9s, T9s, 98s, 87s, 76s, 65s, A9o, A8o, KTo, QJo' }, call: { core: '77-22, A8s-A2s, K9s-K2s, Q2s+, J2s+, T2s+, 92s+, 82s+, 72s+, 62s+, 52s+, 42s+, 32s, A9o-A2o, KTo-K2o, Q3o+, J5o+, T6o+, 96o+, 85o+, 75o+, 64o+, 54o', mix: 'Q2o, J4o, J3o, T5o, 95o, 84o, 74o, 63o, 53o, 43o' } },
     SB: { r3: { core: '99+, ATs+, A5s, A4s, KJs+, AJo+, KQo', mix: '88-66, A9s-A6s, A3s, A2s, KTs, K9s, QJs, QTs, JTs, T9s, 98s, ATo, KJo' }, call: { core: '88-22, A9s-A2s, KTs-K2s, QJs-Q2s, J2s+, T3s+, 94s+, 84s+, 73s+, 63s+, 52s+, 42s+, 32s, ATo-A2o, KJo-K5o, Q8o+, J8o+, T8o+, 97o+, 86o+, 76o, 65o', mix: 'K4o-K2o, Q7o-Q5o, J7o, T7o, 96o, 85o, 75o, 64o, 54o' } },
   },
 };
 const DEF = {};
 for (const role in DEF_SRC) { DEF[role] = {}; for (const g in DEF_SRC[role]) DEF[role][g] = { r3: chart(DEF_SRC[role][g].r3), call: chart(DEF_SRC[role][g].call) }; }
 const GROUP_OF_K = k => k >= 6 ? 'EP' : k >= 4 ? 'MP' : k === 3 ? 'CO' : k === 2 ? 'BTN' : 'SB';
-const GROUP_KO = { EP: '얼리 포지션', MP: '미들 포지션', CO: '컷오프', BTN: '버튼', SB: '스몰 블라인드' };
+const GROUP_KO = { EP: '얼리 포지션', MP: '미들 포지션', CO: '컷오프', BTN: '버튼', SB: '스몰 블라인드', HU: '헤즈업 버튼' };
 
 const SET = s => new Set(s.split(' ').map(n => NAME_TO_H[n]));
 const PREM_OPEN = SET('AA KK QQ JJ AKs AKo AQs');     // short-stack opens: min-raise to induce
@@ -529,6 +538,7 @@ const LABELS = {
   5: ['UTG', 'CO', 'BTN', 'SB', 'BB'],
   4: ['CO', 'BTN', 'SB', 'BB'],
   3: ['BTN', 'SB', 'BB'],
+  2: ['BTN/SB', 'BB'],
 };
 const TYPE_W = { rfi: 4, vsOpen: 3, vsJam: 2, vsLimp: 1.3 };
 const TYPE_KO = { rfi: '오픈 기회', vsOpen: '레이즈 상대', vsJam: '올인 상대', vsLimp: '림퍼 상대' };
@@ -539,7 +549,7 @@ const rint = (a, b) => Math.floor(rnd(a, b + 1));
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 function gauss() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
 function wpick(keys, weights) { const tot = keys.reduce((s, k) => s + weights[k], 0); let r = Math.random() * tot; for (const k of keys) { r -= weights[k]; if (r <= 0) return k; } return keys[keys.length - 1]; }
-function pickN(s) { if (s !== 'rand') return +s; const r = Math.random(); return r < .36 ? 9 : r < .46 ? 8 : r < .53 ? 7 : r < .83 ? 6 : r < .92 ? 5 : r < .97 ? 4 : 3; }
+function pickN(s) { if (s !== 'rand') return +s; const r = Math.random(); return r < .35 ? 9 : r < .45 ? 8 : r < .52 ? 7 : r < .8 ? 6 : r < .88 ? 5 : r < .93 ? 4 : r < .97 ? 3 : 2; }
 function pickDepth(s) {
   const b = s !== 'rand' ? s : (() => { const r = Math.random(); return r < .36 ? 'short' : r < .7 ? 'mid' : 'deep'; })();
   return b === 'short' ? rnd(4, 15) : b === 'mid' ? rnd(15, 40) : rnd(40, 120);
@@ -591,7 +601,7 @@ function tryGen(st) {
   const hero = players[heroIdx];
   if (type === 'vsOpen') {
     const v = players[villIdx]; const s = wager(sc, v);
-    sc.R = v.k === 1 ? (s > 40 ? 3 : 2.5) : s <= 25 ? 2 : s <= 40 ? pick([2, 2.2]) : pick([2.2, 2.5]);
+    sc.R = v.k === 1 ? (N === 2 ? (s <= 25 ? 2 : pick([2, 2.5])) : (s > 40 ? 3 : 2.5)) : s <= 25 ? 2 : s <= 40 ? pick([2, 2.2]) : pick([2.2, 2.5]);
     v.st = 'raise'; v.bet = sc.R;
   }
   if (type === 'vsJam') { const v = players[villIdx]; v.st = 'jam'; v.bet = wager(sc, v); }
@@ -634,7 +644,8 @@ function zoneOfRfi(eff) { return eff <= 12 ? 'A' : eff <= 20 ? 'B' : eff <= 40 ?
 
 function rfiEngine(sc) {
   const hero = sc.players[sc.heroIdx], k = hero.k, eff = sc.eff, isSB = k === 1;
-  const zone = zoneOfRfi(eff), Rw = RFI[k];
+  const HU = sc.N === 2, oop = isSB && !HU; // heads-up button/SB has position postflop
+  const zone = zoneOfRfi(eff), Rw = rfiOf(sc, k);
   function evalHand(h) {
     const w = Rw[h], pth = pushTh(sc, k, h), prem = PREM_OPEN.has(h);
     const push = pth >= eff - 1e-6, near = Math.abs(pth - eff) <= 1.0;
@@ -664,17 +675,18 @@ function rfiEngine(sc) {
     if (zone === 'A' || zone === 'B') {
       if (a <= 2) return ['best', ''];
       if (a <= 2.5) return ['ok', '이 스택에서는 2BB(민레이즈)면 충분합니다.'];
-      if (isSB && a <= 3) return ['ok', 'SB라도 숏스택에서는 2~2.5BB가 효율적입니다.'];
+      if (oop && a <= 3) return ['ok', 'SB라도 숏스택에서는 2~2.5BB가 효율적입니다.'];
       return ['bad', `유효 ${fbb(eff)}에서 ${fbb(a)} 오픈은 스택 대비 너무 큽니다. 3벳 올인을 맞으면 큰 손실입니다.`];
     }
     if (zone === 'C') {
-      if (isSB) { if (a >= 2.5 && a <= 3) return ['best', '']; if (a <= 2) return ['ok', 'SB는 포지션이 없어 2.5~3BB가 표준입니다.']; return ['bad', 'SB 오픈이 너무 큽니다(2.5~3BB 권장).']; }
+      if (oop) { if (a >= 2.5 && a <= 3) return ['best', '']; if (a <= 2) return ['ok', 'SB는 포지션이 없어 2.5~3BB가 표준입니다.']; return ['bad', 'SB 오픈이 너무 큽니다(2.5~3BB 권장).']; }
       if (a <= 2) return ['best', ''];
       if (a <= 2.5) return ['ok', '20~40BB에서는 2~2.2BB가 표준입니다. 2.5BB도 괜찮지만 3벳 올인을 맞을 때 손실이 커집니다.'];
       if (a <= 3) return eff > 30 ? ['ok', '3BB는 이 스택에서 조금 큽니다(2~2.2BB 권장).'] : ['bad', `유효 ${fbb(eff)}에서 3BB 오픈은 스택의 ${fpct(3 / eff * 100)}를 투자해 리스틸에 취약합니다.`];
       return ['bad', '오픈 사이즈가 너무 큽니다. 같은 폴드 효과를 더 적은 칩으로 얻을 수 있습니다.'];
     }
-    if (isSB) { if (a >= 3 && a <= 3) return ['best', '']; if (a >= 2.5 && a <= 4) return ['ok', 'SB 표준은 약 3BB입니다(2.5~3.5BB 범위).']; return ['ok', 'SB 오픈은 약 3BB가 표준입니다.']; }
+    if (HU && a >= 2 && a <= 2.5) return ['best', ''];
+    if (oop) { if (a >= 3 && a <= 3) return ['best', '']; if (a >= 2.5 && a <= 4) return ['ok', 'SB 표준은 약 3BB입니다(2.5~3.5BB 범위).']; return ['ok', 'SB 오픈은 약 3BB가 표준입니다.']; }
     if (a >= 2.2 && a <= 2.5) return ['best', ''];
     if (a < 2.2) return ['ok', '딥 스택 표준은 2.2~2.5BB입니다. 민레이즈도 쓰이지만 BB에게 너무 좋은 가격을 줍니다.'];
     if (a <= 3) return ['ok', '3BB는 캐시게임 표준에 가깝습니다. 앤티가 있는 토너먼트에서는 2.2~2.5BB로 충분합니다.'];
@@ -736,10 +748,10 @@ function vsOpenEngine(sc) {
   const hero = sc.players[sc.heroIdx], opener = sc.players[sc.villIdx];
   const kh = hero.k, ko = opener.k, eff = sc.eff, R = sc.R, D = D_OF(sc);
   const role = kh === 0 ? 'BB' : kh === 1 ? 'SB' : 'IP';
-  const group = GROUP_OF_K(ko);
+  const group = sc.N === 2 ? 'HU' : GROUP_OF_K(ko);
   const CH = DEF[role][group];
   const zone = eff <= 25 ? 'short' : eff <= 35 ? 'trans' : 'deep';
-  const O = RFI[ko];
+  const O = rfiOf(sc, ko);
   const h0 = kh === 0 ? 1 : kh === 1 ? 0.5 : 0, o0 = ko === 1 ? 0.5 : 0;
   const RS = eff <= 40 ? solveReshove(O, R, eff, D, h0, o0, kh) : null;
   const toCall = R - h0, potNow = D + R - o0, potAfter = potNow + toCall;
@@ -824,8 +836,11 @@ function vsLimpEngine(sc) {
   const hero = sc.players[sc.heroIdx], k = hero.k, eff = sc.eff, n = sc.limpers.length;
   const role = k === 0 ? 'BB' : k === 1 ? 'SB' : 'IP';
   const zone = eff <= 15 ? 'short' : 'deep';
-  const isoW = role === 'BB' ? RFI[5] : role === 'SB' ? RFI[4] : RFI[Math.min(8, k + 2)];
-  const ownW = role === 'BB' ? RFI[1] : RFI[k];
+  const HU = sc.N === 2;
+  const isoW = HU ? RFI[3] : role === 'BB' ? RFI[5] : role === 'SB' ? RFI[4] : RFI[Math.min(8, k + 2)];
+  const ownW = role === 'BB' ? rfiOf(sc, 1) : rfiOf(sc, k);
+  // postflop position vs the limpers: non-blinds always have it; BB has it only against a lone SB limper (not heads-up)
+  const ipPost = role === 'IP' || (role === 'BB' && !HU && sc.limpers.every(i => sc.players[i].k === 1));
   const pk = role === 'BB' ? 1 : k;
   function evalHand(h) {
     const pth = pushTh(sc, pk, h);
@@ -853,13 +868,13 @@ function vsLimpEngine(sc) {
     if (eff <= 25 && pth >= eff && !prem) f.allin = f.raise === 'best' || f.call === 'best' ? 'ok' : (f.fold === 'best' ? 'bad' : 'ok');
     return { f, pth, iso, own: ownW[h], overlimpOK };
   }
-  const target = role === 'IP' ? 3 + n : 4 + n;
+  const target = HU ? 4 : ipPost ? 3 + n : 4 + n;
   function sizeGrade(amt) {
     const a = r1(amt);
     if (zone === 'short') return PREM_OPEN.has(sc._h) ? ['ok', '숏스택 프리미엄은 작은 아이소로 콜을 유도할 수도 있습니다.'] : ['bad', '15BB 이하에서 아이소 레이즈 후 올인을 맞으면 폴드할 수 없습니다. 올인이 낫습니다.'];
     if (a > 0.4 * eff) return ['bad', `${fbb(a)}는 유효 스택의 ${fpct(a / eff * 100)}입니다. 이 정도면 올인이 낫습니다.`];
     if (Math.abs(a - target) < 0.05) return ['best', ''];
-    if (Math.abs(a - target) <= 1.05) return ['ok', `기본 공식은 ${role === 'IP' ? '3BB' : '4BB(OOP)'} + 림퍼당 1BB = ${fbb(target)}입니다.`];
+    if (Math.abs(a - target) <= 1.05) return ['ok', HU ? '헤즈업에서 BB가 림프에 레이즈할 때는 약 4BB가 표준입니다.' : `기본 공식은 ${ipPost ? '3BB' : '4BB(포지션 없음)'} + 림퍼당 1BB = ${fbb(target)}입니다.`];
     return a < target ? ['bad', `림퍼 ${n}명에게 ${fbb(a)}는 너무 작아 여러 명이 따라옵니다. ${fbb(target)} 정도가 적당합니다.`] : ['bad', `${fbb(a)}는 너무 큽니다. 약한 림퍼들은 폴드하고 강한 핸드만 남습니다.`];
   }
   function trivial(h) {
@@ -867,7 +882,7 @@ function vsLimpEngine(sc) {
     const e = evalHand(h);
     return (e.f.fold === 'best' || (role === 'BB' && e.f.call === 'best')) && RFI[2][h] === 0;
   }
-  return { zone, role, n, isoW, ownW, target, evalHand, sizeGrade, trivial };
+  return { zone, role, n, isoW, ownW, target, ipPost, HU, evalHand, sizeGrade, trivial };
 }
 
 /* =====================================================================
@@ -937,10 +952,10 @@ function explain(sc, h) {
   const M = hero.bb / D_OF(sc), hz = harrington(M);
   const out = { bullets: [], kpis: [], refs: [], why: {}, chart: null };
   const pos = hero.label, k = hero.k;
-  const seatNote = (lab, kk) => (RFI_SEAT[kk] && RFI_SEAT[kk] !== lab ? `${lab}(뒤에 ${kk}명 · ${RFI_SEAT[kk]}과 같은 레인지)` : `${lab}(뒤에 ${kk}명)`);
+  const seatNote = (lab, kk) => (sc.N === 2 ? `${lab}(헤즈업 · 프리플랍 선행동, 포스트플랍 포지션 있음)` : RFI_SEAT[kk] && RFI_SEAT[kk] !== lab ? `${lab}(뒤에 ${kk}명 · ${RFI_SEAT[kk]}과 같은 레인지)` : `${lab}(뒤에 ${kk}명)`);
 
   if (sc.type === 'rfi') {
-    const zone = eng.zone, Rw = RFI[k], pct = rangePct(Rw);
+    const zone = eng.zone, Rw = rfiOf(sc, k), pct = rangePct(Rw);
     const inTxt = e.w >= 1 ? '<b>레인지 안</b>' : e.w > 0 ? '<b>경계(혼합) 핸드</b>' : '<b>레인지 밖</b>';
     const thTxt = e.pth >= 25 ? '25BB 이상에서도 푸시' : e.pth > 0 ? `최대 <b>${fbb(e.pth)}</b>까지 푸시` : '어떤 스택에서도 푸시하지 않음';
     out.kpis.push(['유효 스택', fbb(eff)], ['M', `${r1(M)} · ${hz.name}`], ['푸시 상한', e.pth >= 25 ? '25BB+' : fbb(e.pth)]);
@@ -963,7 +978,7 @@ function explain(sc, h) {
     } else {
       out.bullets.push(`40BB 이상 딥 스택: 포지션별 GTO 근사 오픈 레인지를 따릅니다. 뒤에 남은 사람이 많을수록(얼리 포지션) 레인지가 좁고, 컷오프·버튼은 넓습니다.`);
       out.bullets.push(`${seatNote(pos, k)} 오픈 레인지는 약 ${fpct(pct)}이고 ${hn} 핸드는 ${inTxt}입니다.`);
-      out.bullets.push(k === 1 ? 'SB는 포스트플랍 내내 BB에게 포지션이 없으므로 약 <b>3BB</b>로 크게 올려 BB의 콜 가격을 나쁘게 만듭니다.' : '사이즈는 <b>2.2~2.5BB</b>: 앤티로 팟이 이미 커서 작은 사이즈로도 블라인드가 충분히 폴드하고, 실패했을 때 잃는 칩도 적습니다.');
+      out.bullets.push(sc.N === 2 ? '헤즈업 버튼은 SB를 겸해 프리플랍에는 먼저 행동하지만 포스트플랍에는 마지막에 행동합니다. 포지션 이점이 커서 약 80%의 핸드를 <b>2~2.5BB</b>로 작게 엽니다.' : k === 1 ? 'SB는 포스트플랍 내내 BB에게 포지션이 없으므로 약 <b>3BB</b>로 크게 올려 BB의 콜 가격을 나쁘게 만듭니다.' : '사이즈는 <b>2.2~2.5BB</b>: 앤티로 팟이 이미 커서 작은 사이즈로도 블라인드가 충분히 폴드하고, 실패했을 때 잃는 칩도 적습니다.');
       out.refs.push('mpt');
     }
     out.bullets.push(`M = ${r1(M)} → 해링턴의 <b>${hz.name}</b>: ${hz.desc}.`);
@@ -1036,7 +1051,7 @@ function explain(sc, h) {
       out.bullets.push(`${hn}의 내쉬 푸시 상한은 ${e.pth >= 25 ? '25BB+' : fbb(e.pth)}입니다(데드 머니 보정 +1.5BB 적용).`);
       out.refs.push('kill');
     } else {
-      out.bullets.push(`아이소 사이즈 공식: <b>${role === 'IP' ? '3BB' : '4BB(포지션 없음 +1)'} + 림퍼당 1BB = ${fbb(eng.target)}</b>. 림퍼가 많을수록 팟이 커지므로 더 크게 올립니다.`);
+      out.bullets.push(eng.HU ? '헤즈업에서 BB는 포스트플랍에 포지션이 없으므로, 버튼의 림프에 레이즈할 때 약 <b>4BB</b>로 올립니다.' : `아이소 사이즈 공식: <b>${eng.ipPost ? '3BB' : '4BB(포지션 없음 +1)'} + 림퍼당 1BB = ${fbb(eng.target)}</b>. 림퍼가 많을수록 팟이 커지므로 더 크게 올립니다.${role === 'BB' && eng.ipPost ? ' SB 혼자 림프했다면 BB는 포스트플랍에 포지션이 있으므로 3BB 기준을 씁니다.' : ''}`);
       out.bullets.push(`아이소 레인지는 일반 오픈보다 조금 타이트합니다(약 ${fpct(rangePct(eng.isoW))}). ${hn} 핸드는 ${e.iso >= 1 ? '<b>아이소 레인지 안</b>' : e.iso > 0 ? '<b>경계 핸드</b>' : '<b>아이소 레인지 밖</b>'}입니다.`);
       if (role === 'BB') out.bullets.push('BB는 공짜로 플랍을 볼 수 있으므로 아이소 레인지 밖의 핸드는 체크합니다.');
       else if (e.overlimpOK || e.f.call === 'best') out.bullets.push('스몰 페어·수딧 커넥터·수딧 에이스는 멀티웨이 팟에서 싸게 플랍을 보는 오버림프가 좋습니다. 셋·플러시·스트레이트를 맞혔을 때 큰 팟을 이길 수 있기 때문입니다(임플라이드 오즈).');
@@ -1172,9 +1187,9 @@ function renderTable() {
         box.appendChild(b);
       }
     }
-    if (p.label === 'BTN' || (N === 3 && p.k === 2)) {
+    if (p.label.startsWith('BTN')) {
       const d = document.createElement('div'); d.className = 'dealer'; d.textContent = 'D'; d.title = '딜러 버튼';
-      const a2 = ang + (narrow ? 0.32 : 0.22);
+      const a2 = ang + (narrow ? 0.45 : 0.38);
       d.style.left = (50 + rx * 0.74 * Math.cos(a2)) + '%'; d.style.top = (50 + ry * 0.7 * Math.sin(a2)) + '%';
       box.appendChild(d);
     }
@@ -1187,7 +1202,7 @@ function renderTable() {
 
 function situationLine(sc) {
   const hero = sc.players[sc.heroIdx];
-  if (sc.type === 'rfi') return `앞의 ${sc.heroIdx}명이 모두 폴드했습니다. <b>첫 진입</b> 기회입니다.`;
+  if (sc.type === 'rfi') return sc.heroIdx === 0 ? `가장 먼저 행동합니다. <b>첫 진입</b> 기회입니다.${sc.N === 2 ? ' (헤즈업: 버튼이 SB를 겸함)' : ''}` : `앞의 ${sc.heroIdx}명이 모두 폴드했습니다. <b>첫 진입</b> 기회입니다.`;
   if (sc.type === 'vsOpen') { const v = sc.players[sc.villIdx]; return `<b>${v.label}</b>가 ${fbb(sc.R)}로 오픈 레이즈, 나머지는 폴드했습니다.`; }
   if (sc.type === 'vsJam') { const v = sc.players[sc.villIdx]; return `<b>${v.label}</b>가 ${fbb(sc.players[sc.villIdx].bet)} <b>올인</b>, 나머지는 폴드했습니다.`; }
   const ls = sc.limpers.map(i => sc.players[i].label);
