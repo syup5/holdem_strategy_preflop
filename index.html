@@ -27,6 +27,8 @@
   --t-call:#e8f1fa; --t-raise:#fcefe7; --t-jam:#f3eafa; --t-fold:#eef2f0;
   --font-ui:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --font-num:"Barlow Condensed","Arial Narrow","IBM Plex Sans KR",sans-serif;
+  --q1:#5c3605; --q1-ink:#fff7e6; --q2:#8c5710; --q2-ink:#fff7e6; --q3:#bd832a; --q3-ink:#1f1404;
+  --q4:#dbb36a; --q4-ink:#2a1c06; --q5:#ecd9ad; --q5-ink:#3a2c10; --q6:#f1eee7; --q6-ink:#8a8478;
   --r:12px;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
@@ -36,6 +38,8 @@
   --c-raise:#e0743f; --c-raise-mix:#8f5131; --c-call:#3b86cf; --c-call-mix:#2f5f8f;
   --c-jam:#9d52cc; --c-jam-mix:#64377f; --c-fold:#222c28; --c-fold-ink:#74847e; --mix-ink:#f1e9e4;
   --t-call:#172433; --t-raise:#2d1d14; --t-jam:#251a2e; --t-fold:#1b2421;
+  --q1:#f2c66b; --q1-ink:#1b1305; --q2:#d29b3b; --q2-ink:#1b1305; --q3:#a5742a; --q3-ink:#fff4dd;
+  --q4:#71501e; --q4-ink:#f5e6c8; --q5:#45351b; --q5-ink:#e4d6b8; --q6:#1f2824; --q6-ink:#7d8b85;
   color-scheme:dark;
 }}
 :root[data-theme="dark"]{
@@ -45,6 +49,8 @@
   --c-raise:#e0743f; --c-raise-mix:#8f5131; --c-call:#3b86cf; --c-call-mix:#2f5f8f;
   --c-jam:#9d52cc; --c-jam-mix:#64377f; --c-fold:#222c28; --c-fold-ink:#74847e; --mix-ink:#f1e9e4;
   --t-call:#172433; --t-raise:#2d1d14; --t-jam:#251a2e; --t-fold:#1b2421;
+  --q1:#f2c66b; --q1-ink:#1b1305; --q2:#d29b3b; --q2-ink:#1b1305; --q3:#a5742a; --q3-ink:#fff4dd;
+  --q4:#71501e; --q4-ink:#f5e6c8; --q5:#45351b; --q5-ink:#e4d6b8; --q6:#1f2824; --q6-ink:#7d8b85;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -244,6 +250,47 @@ table.hist{width:100%;border-collapse:collapse;font-size:.84rem;min-width:560px}
 .method{font-size:.84rem;color:var(--muted);display:grid;gap:6px}
 .method p{margin:0}
 .empty{color:var(--muted);font-size:.86rem}
+/* ---------- appendix ---------- */
+.appendix{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.apx-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;margin-top:10px}
+.apx-head h2{margin:0;font-size:1.4rem;font-weight:700;text-wrap:balance}
+.apx-head span{color:var(--muted);font-size:.9rem}
+.box h3{margin:0;font-size:1.08rem;font-weight:700;text-wrap:balance}
+.ptable{width:100%;border-collapse:collapse;font-size:.86rem;min-width:680px}
+.ptable th{text-align:right;font-weight:600;color:var(--muted);font-size:.74rem;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.ptable th:nth-child(-n+2){text-align:left}
+.ptable td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--font-num);font-size:1rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ptable td:nth-child(-n+2){text-align:left;font-family:var(--font-ui);font-size:.86rem}
+.ptable tr.sel td{background:var(--accent-soft)}
+.ptable .rowbtn{background:none;border:none;padding:0;font-weight:700;color:var(--ink);text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+.ptable .wcol{font-weight:700}
+.pbar{display:inline-block;height:8px;border-radius:4px;background:var(--c-raise);vertical-align:middle;margin-left:8px}
+.pos-detail{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.pos-detail{grid-template-columns:minmax(0,1fr)}}
+.rng{font-family:var(--font-num);font-size:.95rem;line-height:1.5;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;overflow-wrap:anywhere}
+.rng-label{font-size:.78rem;color:var(--muted);margin:10px 0 3px}
+.rng-label:first-child{margin-top:0}
+.apx-grid{display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.apx-grid{grid-template-columns:minmax(0,1fr)}}
+.cell.q1{background:var(--q1);color:var(--q1-ink)}.cell.q2{background:var(--q2);color:var(--q2-ink)}.cell.q3{background:var(--q3);color:var(--q3-ink)}
+.cell.q4{background:var(--q4);color:var(--q4-ink)}.cell.q5{background:var(--q5);color:var(--q5-ink)}.cell.q6{background:var(--q6);color:var(--q6-ink)}
+.toptable{width:100%;border-collapse:collapse;font-size:.86rem}
+.toptable th{text-align:left;font-weight:600;color:var(--muted);font-size:.74rem;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.toptable td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.toptable td.x{font-family:var(--font-num);font-weight:700;font-size:1rem;white-space:nowrap;font-variant-numeric:tabular-nums}
+.toptable td.r{font-family:var(--font-num);font-size:.94rem;line-height:1.45;overflow-wrap:anywhere}
+.quiz{border:1px solid var(--line);background:var(--panel-2);border-radius:var(--r);padding:14px 16px;display:grid;gap:10px;margin-top:4px}
+.quiz-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px}
+.quiz-hand{font-family:var(--font-num);font-weight:700;font-size:2.4rem;line-height:1}
+.quiz-q{font-weight:600}
+.quiz-opts{display:flex;flex-wrap:wrap;gap:6px}
+.qbtn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 12px;font-family:var(--font-num);font-weight:600;font-size:1rem}
+.qbtn:hover:not(:disabled){border-color:var(--ink)}
+.qbtn:disabled{cursor:default}
+.qbtn.right{border:2px solid var(--best);background:var(--best-soft)}
+.qbtn.wrong{border:2px solid var(--bad);background:var(--bad-soft)}
+.quiz-fb{font-size:.92rem}
+.quiz-next{justify-self:start;border:none;border-radius:8px;padding:8px 14px;background:var(--ink);color:var(--panel);font-weight:700}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 @media (max-width:640px){
   .plate{padding:3px 3px 4px;border-radius:8px}
@@ -350,9 +397,29 @@ table.hist{width:100%;border-collapse:collapse;font-size:.84rem;min-width:560px}
         <p><b>딥 스택(25BB 초과)</b>: 포지션별 오픈·디펜스 레인지는 100BB 기준 GTO 솔버 결과를 단순화한 근사 차트입니다. 경계(혼합) 핸드는 두 선택을 모두 허용합니다.</p>
         <p><b>숏 스택</b>: 169×169 프리플랍 올인 에퀴티 행렬(매치업당 몬테카를로 약 24,000회)로 chipEV 내쉬 균형 푸시/폴드 차트를 직접 계산했습니다(동일 스택, 오버콜 무시, 카드 제거 효과 반영). 리스틸·콜 판단은 이 행렬로 실시간 EV를 계산합니다.</p>
         <p>모든 판단은 chipEV 기준입니다. 버블·파이널 테이블처럼 ICM 압력이 큰 상황에서는 더 타이트해야 합니다.</p>
+        <p><b>핸드 퍼센트</b>: 같은 에퀴티 행렬로 계산한 랜덤 핸드 상대 올인 에퀴티 순위입니다(부록 B).</p>
       </div>
       <h2 style="margin-top:8px">참고 문헌</h2>
       <ol class="refs" id="refList"></ol>
+    </div>
+  </section>
+
+  <section class="appendix" id="appendix" aria-labelledby="apxTitle">
+    <div class="apx-head"><h2 id="apxTitle">부록</h2><span>외워 두면 실전 판단이 빨라지는 기준표</span></div>
+    <div class="box">
+      <h3>A. 포지션별 오픈 레인지 (첫 진입)</h3>
+      <p class="hint">앞사람이 모두 폴드했을 때 여는 레인지입니다. 오픈 열은 100BB 기준 근사 차트이고(가중 = 코어 + 경계 핸드의 절반), 푸시 열은 BB 앤티 구조의 chipEV 내쉬 푸시 범위입니다. 뒤에 남은 인원이 같으면 같은 레인지를 씁니다(예: 6인 UTG = 9인 LJ). 자리 이름을 누르면 차트가 열립니다.</p>
+      <div class="hist-scroll"><table class="ptable" id="posTable"></table></div>
+      <div class="pos-detail" id="posDetail"></div>
+    </div>
+    <div class="box">
+      <h3>B. 핸드 퍼센트 암기표</h3>
+      <p class="hint">169개 시작 핸드를 랜덤 핸드 상대 올인 에퀴티로 줄 세운 순위입니다. 셀의 숫자는 그 핸드까지 포함한 누적 비율 "상위 X%"입니다. 레인지 크기를 가늠하는 기준이지만, 실제 오픈 차트는 포지션과 플레이어빌리티 때문에 수딧·커넥터가 더 많이 들어갑니다.</p>
+      <div class="apx-grid">
+        <div class="chart"><div class="grid13" id="pctGrid" role="img" aria-label="핸드별 상위 퍼센트 히트맵"></div><div class="legend" id="pctLegend"></div></div>
+        <div class="hist-scroll"><table class="toptable" id="topTable"></table></div>
+      </div>
+      <div class="quiz" id="quiz" aria-live="polite"></div>
     </div>
   </section>
 </div>
@@ -474,7 +541,8 @@ const RFI_SRC = {
 };
 const RFI = {}; for (const k in RFI_SRC) RFI[k] = chart(RFI_SRC[k]);
 // Heads-up: the button posts the SB, acts first preflop and has position postflop → opens ~80%
-const RFI_HU = chart({ core: '22+, A2s+, K2s+, Q2s+, J2s+, T2s+, 92s+, 82s+, 72s+, 62s+, 52s+, 42s+, 32s, A2o+, K2o+, Q2o+, J4o+, T5o+, 96o+, 86o+, 75o+, 65o, 54o', mix: 'J3o, J2o, T4o, T3o, 95o, 85o, 74o, 64o, 53o, 43o' });
+const RFI_HU_SRC = { core: '22+, A2s+, K2s+, Q2s+, J2s+, T2s+, 92s+, 82s+, 72s+, 62s+, 52s+, 42s+, 32s, A2o+, K2o+, Q2o+, J4o+, T5o+, 96o+, 86o+, 75o+, 65o, 54o', mix: 'J3o, J2o, T4o, T3o, 95o, 85o, 74o, 64o, 53o, 43o' };
+const RFI_HU = chart(RFI_HU_SRC);
 const rfiOf = (sc, k) => (sc.N === 2 && k === 1 ? RFI_HU : RFI[k]);
 const RFI_SEAT = { 8: '9인 UTG', 7: 'UTG+1', 6: 'UTG+2', 5: 'LJ', 4: 'HJ', 3: 'CO', 2: 'BTN', 1: 'SB' };
 
@@ -960,7 +1028,7 @@ function explain(sc, h) {
   const eng = engineFor(sc), hero = sc.players[sc.heroIdx], hn = handLabel(h), eff = sc.eff;
   const e = eng.evalHand(h);
   const M = hero.bb / D_OF(sc), hz = harrington(M);
-  const out = { bullets: [], kpis: [], refs: [], why: {}, chart: null };
+  const out = { bullets: [], kpis: [['핸드 순위', `상위 ${fpct(HAND_PCT[h])} · ${HAND_RANK[h]}위`]], refs: [], why: {}, chart: null };
   const pos = hero.label, k = hero.k;
   const seatNote = (lab, kk) => (sc.N === 2 ? `${lab}(헤즈업 · 프리플랍 선행동, 포스트플랍 포지션 있음)` : RFI_SEAT[kk] && RFI_SEAT[kk] !== lab ? `${lab}(뒤에 ${kk}명 · ${RFI_SEAT[kk]}과 같은 레인지)` : `${lab}(뒤에 ${kk}명)`);
 
@@ -1120,8 +1188,8 @@ const S = {
   history: [],
   sc: null, answered: null,
 };
-function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify({ settings: S.settings, stats: S.stats, history: S.history.slice(0, 40) })); } catch (e) { /* storage unavailable */ } }
-function load() { try { const d = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); if (d) { Object.assign(S.settings, d.settings || {}); Object.assign(S.stats, d.stats || {}); S.history = d.history || []; } } catch (e) { /* ignore */ } }
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify({ settings: S.settings, stats: S.stats, history: S.history.slice(0, 40), quiz: S.quiz })); } catch (e) { /* storage unavailable */ } }
+function load() { try { const d = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); if (d) { Object.assign(S.settings, d.settings || {}); Object.assign(S.stats, d.stats || {}); S.history = d.history || []; if (d.quiz) S.quiz = d.quiz; } } catch (e) { /* ignore */ } }
 
 const $ = id => document.getElementById(id);
 
@@ -1322,7 +1390,7 @@ function chartHTML(c) {
   };
   const order = ['jam', 'jam-mix', 'mix-rj', 'raise', 'raise-mix', 'mix-rc', 'call', 'call-mix', 'mix-cj', 'fold'];
   const legend = order.filter(k => c.counts[k]).map(k => `<span><i style="background:${LEG[k][1]}"></i>${LEG[k][0]} ${fpct(c.counts[k] / 1326 * 100)}</span>`).join('');
-  const cells = c.cells.map((x, i) => `<div class="cell ${x.cls}${i === c.me ? ' me' : ''}" title="${x.txt}${x.sub ? ' · ' + x.sub + 'BB' : ''}">${c.kind === 'nash' ? `<span>${x.txt}<span class="sub">${x.sub}</span></span>` : x.txt}</div>`).join('');
+  const cells = c.cells.map((x, i) => `<div class="cell ${x.cls}${i === c.me ? ' me' : ''}" title="${x.txt}${x.sub ? ' · ' + x.sub + 'BB' : ''} · 상위 ${fpct(HAND_PCT[i])}">${c.kind === 'nash' ? `<span>${x.txt}<span class="sub">${x.sub}</span></span>` : x.txt}</div>`).join('');
   return `<div class="chart"><div class="chart-title">${esc(c.title)}</div>
     <div class="chart-scroll"><div class="grid13" role="img" aria-label="13x13 핸드 레인지 차트, 내 핸드 ${handName(c.me)} 강조">${cells}</div></div>
     <div class="legend">${legend}<span><i style="outline:2px solid var(--accent);outline-offset:-2px;background:transparent"></i>내 핸드</span></div></div>`;
@@ -1361,6 +1429,129 @@ function renderHistory() {
   }).join('');
 }
 
+/* =====================================================================
+   Appendix: open-range table by position, hand percentile chart & quiz
+   ===================================================================== */
+const ALL_HANDS = new Float32Array(169).fill(1);
+const EQ_RAND = HANDS.map(h => eqVs(h, ALL_HANDS)[0]);                 // all-in equity vs a random hand
+const HAND_PCT = new Float32Array(169), HAND_RANK = new Int16Array(169); // cumulative "top X%" incl. the hand itself
+[...HANDS].sort((a, b) => EQ_RAND[b] - EQ_RAND[a]).reduce((cum, h, i) => { cum += COMBOS[h]; HAND_PCT[h] = cum / 1326 * 100; HAND_RANK[h] = i + 1; return cum; }, 0);
+const PCT_BUCKETS = [[5, '상위 5%'], [10, '5–10%'], [20, '10–20%'], [35, '20–35%'], [50, '35–50%'], [100, '50% 밖']];
+const POS_BUCKETS = [[15, '15% 이하'], [20, '15–20%'], [25, '20–25%'], [30, '25–30%'], [40, '30–40%'], [60, '40–60%'], [100, '60% 이상']];
+const bucketIdx = (buckets, v) => buckets.findIndex(([hi]) => v <= hi + 1e-9);
+const fp = p => (p < 10 ? p.toFixed(1) : String(Math.round(p)));
+S.quiz = { n: 0, ok: 0 };
+
+function rangeToString(inSet) { // compress a set of hand classes into standard notation (77+, A9s+, KTs-K8s …)
+  const parts = [];
+  const runs = arr => arr.reduce((out, x) => { const last = out[out.length - 1]; if (last && x === last[1] + 1) last[1] = x; else out.push([x, x]); return out; }, []);
+  const pairs = []; for (let r = 0; r < 13; r++) if (inSet(r * 13 + r)) pairs.push(r);
+  runs(pairs).forEach(([a, b]) => parts.push(a === b ? RANKS[a] + RANKS[a] : a === 0 ? RANKS[b] + RANKS[b] + '+' : RANKS[a] + RANKS[a] + '-' + RANKS[b] + RANKS[b]));
+  for (const t of ['s', 'o']) for (let hi = 0; hi < 12; hi++) {
+    const ks = []; for (let lo = hi + 1; lo < 13; lo++) if (inSet(t === 's' ? hi * 13 + lo : lo * 13 + hi)) ks.push(lo);
+    runs(ks).forEach(([a, b]) => parts.push(a === b ? RANKS[hi] + RANKS[a] + t : a === hi + 1 ? RANKS[hi] + RANKS[b] + t + '+' : RANKS[hi] + RANKS[a] + t + '-' + RANKS[hi] + RANKS[b] + t));
+  }
+  return parts.join(', ');
+}
+
+const POS_ROWS = [
+  { id: 'k8', name: 'UTG', six: '–', k: 8 }, { id: 'k7', name: 'UTG+1', six: '–', k: 7 }, { id: 'k6', name: 'UTG+2 (MP)', six: '–', k: 6 },
+  { id: 'k5', name: 'LJ', six: 'UTG', k: 5 }, { id: 'k4', name: 'HJ', six: 'HJ', k: 4 }, { id: 'k3', name: 'CO', six: 'CO', k: 3 },
+  { id: 'k2', name: 'BTN', six: 'BTN', k: 2 }, { id: 'k1', name: 'SB', six: 'SB', k: 1 }, { id: 'hu', name: 'BTN/SB', six: '헤즈업', k: 1, hu: true },
+];
+const rowChart = r => (r.hu ? RFI_HU : RFI[r.k]);
+const rowSrc = r => (r.hu ? RFI_HU_SRC : RFI_SRC[r.k]);
+const pushPctAt = (k, stack) => rangePct(HANDS.map(h => (NASH.bb[k][h] >= stack ? 1 : 0)));
+const ROW_STATS = POS_ROWS.map(r => {
+  const w = rowChart(r);
+  return { w: rangePct(w), core: rangePct(w.map(x => (x >= 1 ? 1 : 0))), all: rangePct(w.map(x => (x > 0 ? 1 : 0))), p10: pushPctAt(r.k, 10), p15: pushPctAt(r.k, 15), p20: pushPctAt(r.k, 20) };
+});
+let apxSel = 'k3';
+
+function renderPosTable() {
+  const max = Math.max(...ROW_STATS.map(s => s.w));
+  $('posTable').innerHTML = `<thead><tr><th>자리 (9인 기준)</th><th>6인 / 헤즈업</th><th>뒤 인원</th><th>오픈 (가중)</th><th>코어</th><th>경계 포함</th><th>푸시 10BB</th><th>15BB</th><th>20BB</th></tr></thead><tbody>${POS_ROWS.map((r, i) => {
+    const s = ROW_STATS[i];
+    return `<tr class="${r.id === apxSel ? 'sel' : ''}"><td><button type="button" class="rowbtn" data-row="${r.id}">${r.name}</button></td><td>${r.six}</td><td>${r.k}명</td><td class="wcol">${fpct(s.w)}<span class="pbar" style="width:${Math.round(s.w / max * 56)}px"></span></td><td>${fpct(s.core)}</td><td>${fpct(s.all)}</td><td>${fpct(s.p10)}</td><td>${fpct(s.p15)}</td><td>${fpct(s.p20)}</td></tr>`;
+  }).join('')}</tbody>`;
+  $('posTable').querySelectorAll('.rowbtn').forEach(b => b.addEventListener('click', () => { apxSel = b.dataset.row; renderPosTable(); }));
+  renderPosDetail();
+}
+function renderPosDetail() {
+  const r = POS_ROWS.find(x => x.id === apxSel), w = rowChart(r), src = rowSrc(r), s = ROW_STATS[POS_ROWS.indexOf(r)];
+  const cells = HANDS.map(h => `<div class="cell ${w[h] >= 1 ? 'raise' : w[h] > 0 ? 'raise-mix' : 'fold'}" title="${handName(h)} · 상위 ${fpct(HAND_PCT[h])}">${handName(h)}</div>`).join('');
+  const label = r.hu ? '헤즈업 BTN/SB' : `${r.name}${r.six !== '–' ? ` (6인 ${r.six})` : ''}`;
+  $('posDetail').innerHTML = `<div class="chart"><div class="chart-title">${label} 오픈 차트 · 딥스택</div>
+      <div class="grid13" role="img" aria-label="${label} 오픈 레인지 차트">${cells}</div>
+      <div class="legend"><span><i style="background:var(--c-raise)"></i>오픈 ${fpct(s.core)}</span><span><i style="background:var(--c-raise-mix)"></i>경계(혼합) ${fpct(s.all - s.core)}</span><span><i style="background:var(--c-fold)"></i>폴드</span></div></div>
+    <div><div class="rng-label">코어 레인지</div><div class="rng">${esc(src.core)}</div>
+      <div class="rng-label">경계(혼합) 핸드</div><div class="rng">${esc(src.mix)}</div>
+      <div class="rng-label">같은 크기의 순수 에퀴티 상위 ${fpct(s.w)} (비교용)</div><div class="rng">${esc(rangeToString(h => HAND_PCT[h] <= s.w + 1e-9))}</div>
+      <p class="hint" style="margin-top:8px">${r.hu ? '헤즈업 버튼은 포스트플랍에 포지션이 있어 대부분의 핸드를 엽니다.' : `뒤에 ${r.k}명이 남은 자리입니다. 남은 사람이 많을수록 누군가 강한 핸드를 들고 있을 확률이 커져 레인지가 좁아집니다.`} 순수 에퀴티 순위와 비교하면 실제 차트는 대체로 약한 오프수트 에이스·킹 대신 수딧 커넥터와 수딧 브로드웨이를 더 많이 포함합니다.</p></div>`;
+}
+function renderHandPct(me) {
+  $('pctGrid').innerHTML = HANDS.map(h => `<div class="cell q${bucketIdx(PCT_BUCKETS, HAND_PCT[h]) + 1}${h === me ? ' me' : ''}" title="${handName(h)} · 상위 ${fpct(HAND_PCT[h])} · ${HAND_RANK[h]}위 / 169"><span>${handName(h)}<span class="sub">${fp(HAND_PCT[h])}</span></span></div>`).join('');
+  $('pctLegend').innerHTML = PCT_BUCKETS.map(([, lab], i) => `<span><i style="background:var(--q${i + 1})"></i>${lab}</span>`).join('') + (me != null ? '<span><i style="outline:2px solid var(--accent);outline-offset:-2px;background:transparent"></i>퀴즈 핸드</span>' : '');
+}
+function renderTopTable() {
+  const rows = [5, 10, 15, 20, 25, 30, 40, 50].map(x => {
+    const inS = h => HAND_PCT[h] <= x + 1e-9;
+    const combos = HANDS.reduce((s, h) => s + (inS(h) ? COMBOS[h] : 0), 0);
+    return `<tr><td class="x">상위 ${x}%</td><td class="r">${esc(rangeToString(inS))}</td><td class="x" style="text-align:right">${combos}<br><small style="color:var(--muted);font-weight:500">${fpct(combos / 13.26)}</small></td></tr>`;
+  }).join('');
+  $('topTable').innerHTML = `<thead><tr><th>구간</th><th>포함되는 핸드</th><th style="text-align:right">콤보</th></tr></thead><tbody>${rows}</tbody>`;
+}
+
+const QZ = { cur: null, pick: null };
+function newQuiz() {
+  if (Math.random() < 0.7) {
+    const pool = Math.random() < 0.75 ? HANDS.filter(h => HAND_PCT[h] <= 65) : HANDS;
+    QZ.cur = { type: 'hand', h: pick(pool) };
+  } else QZ.cur = { type: 'pos', i: rint(0, POS_ROWS.length - 1) };
+  QZ.pick = null; renderQuiz();
+}
+function quizTruth() {
+  const c = QZ.cur;
+  if (c.type === 'hand') return { v: HAND_PCT[c.h], buckets: PCT_BUCKETS, idx: bucketIdx(PCT_BUCKETS, HAND_PCT[c.h]) };
+  const v = ROW_STATS[c.i].w; return { v, buckets: POS_BUCKETS, idx: bucketIdx(POS_BUCKETS, v) };
+}
+function quizAccept(t, i) { // the true bucket, or a neighbouring bucket when the value sits within 1.5%p of its edge
+  if (i === t.idx) return true;
+  const lo = i === 0 ? 0 : t.buckets[i - 1][0], hi = t.buckets[i][0];
+  return t.v >= lo - 1.5 && t.v <= hi + 1.5;
+}
+function renderQuiz() {
+  if (!QZ.cur) return;
+  const c = QZ.cur, t = quizTruth(), q = S.quiz, answered = QZ.pick != null;
+  let head;
+  if (c.type === 'hand') head = `<div class="quiz-hand">${handName(c.h)}</div><div class="quiz-q">랜덤 핸드 상대 순위로 상위 몇 % 안에 들까요?</div>`;
+  else {
+    const r = POS_ROWS[c.i];
+    head = `<div class="quiz-hand">${r.hu ? '헤즈업 BTN/SB' : r.name}</div><div class="quiz-q">${r.hu ? '헤즈업 버튼' : `${r.name}(뒤에 ${r.k}명${r.six !== '–' ? ` · 6인 ${r.six}` : ''})`}의 딥스택 오픈 레인지는 약 몇 %일까요?</div>`;
+  }
+  const opts = t.buckets.map(([, lab], i) => {
+    let cls = '';
+    if (answered) cls = i === t.idx || (i === QZ.pick && quizAccept(t, i)) ? 'right' : i === QZ.pick ? 'wrong' : '';
+    return `<button type="button" class="qbtn ${cls}" data-i="${i}"${answered ? ' disabled' : ''}>${lab}</button>`;
+  }).join('');
+  let fb = '';
+  if (answered) {
+    const ok = quizAccept(t, QZ.pick);
+    const detail = c.type === 'hand'
+      ? `${handName(c.h)} 핸드는 <b>상위 ${fpct(t.v)}</b> (169개 중 ${HAND_RANK[c.h]}위, 랜덤 핸드 상대 에퀴티 ${fpct(EQ_RAND[c.h] * 100)})`
+      : `가중 <b>${fpct(t.v)}</b> (코어 ${fpct(ROW_STATS[c.i].core)}, 경계 포함 ${fpct(ROW_STATS[c.i].all)})`;
+    fb = `<div class="quiz-fb">${ok ? '<b style="color:var(--best)">정답</b>' : '<b style="color:var(--bad)">오답</b>'} · ${detail}${ok && QZ.pick !== t.idx ? ' · 경계값이라 인접 구간도 정답 처리' : ''}</div><button type="button" class="quiz-next" id="quizNext">다음 문제</button>`;
+  }
+  $('quiz').innerHTML = `<div class="quiz-top"><b>암기 퀴즈</b><span class="hint">${q.n}문제 · 정답 ${q.ok} (${q.n ? Math.round(q.ok / q.n * 100) : 0}%)</span></div>${head}<div class="quiz-opts">${opts}</div>${fb}`;
+  $('quiz').querySelectorAll('.qbtn').forEach(b => b.addEventListener('click', () => {
+    if (QZ.pick != null) return;
+    QZ.pick = +b.dataset.i; S.quiz.n++; if (quizAccept(quizTruth(), QZ.pick)) S.quiz.ok++;
+    save(); renderQuiz(); if (QZ.cur.type === 'hand') renderHandPct(QZ.cur.h);
+  }));
+  if (answered) $('quizNext').addEventListener('click', () => { newQuiz(); renderHandPct(null); });
+}
+function renderAppendix() { renderPosTable(); renderHandPct(null); renderTopTable(); newQuiz(); }
+
 function renderRefList() {
   $('refList').innerHTML = Object.values(REFS).map(r => `<li>${r.t} — ${r.n}. <a href="${r.u}" target="_blank" rel="noopener">링크</a>${r.u2 ? ` · <a href="${r.u2}" target="_blank" rel="noopener">M-비율</a>` : ''}</li>`).join('');
 }
@@ -1381,12 +1572,13 @@ function bindControls() {
   let armed = false;
   $('btnReset').addEventListener('click', () => {
     if (!armed) { armed = true; $('btnReset').textContent = '정말 초기화할까요? 다시 누르면 삭제'; $('resetHint').textContent = ''; setTimeout(() => { armed = false; $('btnReset').textContent = '통계 초기화'; }, 4000); return; }
-    S.stats = { played: 0, best: 0, ok: 0, bad: 0, streak: 0, bestStreak: 0, byType: {} }; S.history = []; save();
+    S.stats = { played: 0, best: 0, ok: 0, bad: 0, streak: 0, bestStreak: 0, byType: {} }; S.history = []; S.quiz = { n: 0, ok: 0 }; save(); renderQuiz();
     armed = false; $('btnReset').textContent = '통계 초기화'; $('resetHint').textContent = '초기화했습니다.';
     renderScores(); renderHistory();
   });
   document.addEventListener('keydown', ev => {
     if (ev.target && /SELECT|INPUT|TEXTAREA/.test(ev.target.tagName)) return;
+    if (ev.target && ev.target.closest && ev.target.closest('#appendix')) return; // appendix quiz has its own buttons
     if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
     const k = ev.key.toUpperCase();
     if (S.answered) { if (k === ' ' || k === 'ENTER' || k === 'N') { ev.preventDefault(); newHand(); } return; }
@@ -1399,7 +1591,7 @@ function bindControls() {
 
 function boot(hot) {
   load();
-  bindControls(); renderRefList();
+  bindControls(); renderRefList(); renderAppendix();
   const prev = hot && hot.state;
   if (prev && prev.sc && prev.sc.players && prev.sc.hand) {
     try {
