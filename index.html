@@ -410,14 +410,13 @@ table.hist{width:100%;border-collapse:collapse;font-size:.84rem;min-width:560px}
         <option value="2">2명 (헤즈업)</option>
       </select>
     </label>
-    <label class="ctl" for="optDepth">내 스택
-      <select id="optDepth">
-        <option value="rand">랜덤</option>
-        <option value="short">숏 (4–15BB)</option>
-        <option value="mid">미들 (15–40BB)</option>
-        <option value="deep">딥 (40BB+)</option>
-      </select>
-    </label>
+    <div class="ctl" role="group" aria-label="내 스택">내 스택
+      <div class="chips-toggle" id="depthToggles">
+        <button class="tog" type="button" id="tgShort" data-d="short" aria-pressed="true">숏 4–15BB</button>
+        <button class="tog" type="button" id="tgMid" data-d="mid" aria-pressed="true">미들 15–40BB</button>
+        <button class="tog" type="button" id="tgDeep" data-d="deep" aria-pressed="true">딥 40BB+</button>
+      </div>
+    </div>
     <label class="ctl" for="optAnte">앤티
       <select id="optAnte">
         <option value="bb">BB 앤티 (1BB)</option>
@@ -712,8 +711,11 @@ const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 function gauss() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
 function wpick(keys, weights) { const tot = keys.reduce((s, k) => s + weights[k], 0); let r = Math.random() * tot; for (const k of keys) { r -= weights[k]; if (r <= 0) return k; } return keys[keys.length - 1]; }
 function pickN(s) { if (s !== 'rand') return +s; const r = Math.random(); return r < .35 ? 9 : r < .45 ? 8 : r < .52 ? 7 : r < .8 ? 6 : r < .88 ? 5 : r < .93 ? 4 : r < .97 ? 3 : 2; }
-function pickDepth(s, pub) { // pub tournaments have fast levels: mostly short/mid stacks
-  const b = s !== 'rand' ? s : (() => { const r = Math.random(); return pub ? (r < .45 ? 'short' : r < .9 ? 'mid' : 'deep') : (r < .36 ? 'short' : r < .7 ? 'mid' : 'deep'); })();
+const DEPTH_W = { short: 0.36, mid: 0.34, deep: 0.30 }, DEPTH_W_PUB = { short: 0.45, mid: 0.45, deep: 0.10 }; // pub levels are fast: mostly short/mid
+function pickDepth(depths, pub) { // mix of the enabled stack-depth buckets
+  let on = ['short', 'mid', 'deep'].filter(d => !depths || depths[d]);
+  if (!on.length) on = ['short', 'mid', 'deep'];
+  const b = wpick(on, pub ? DEPTH_W_PUB : DEPTH_W);
   return b === 'short' ? rnd(4, 15) : b === 'mid' ? rnd(15, 40) : rnd(40, 120);
 }
 
@@ -744,7 +746,7 @@ function tryGen(st) {
     for (let i = cands.length - 1; i > 0; i--) { const j = rint(0, i); [cands[i], cands[j]] = [cands[j], cands[i]]; }
     limpers = cands.slice(0, nL).sort((a, b) => a - b);
   }
-  const heroBB = pickDepth(st.depth, pub);
+  const heroBB = pickDepth(st.depths, pub);
   const avg = Math.max(10, heroBB * rnd(0.75, 1.6));
   const BBc = pick(BB_LEVELS);
   const players = labels.map((label, i) => ({
@@ -1417,13 +1419,26 @@ function nashChart(sc, k, eff, h) {
    ===================================================================== */
 const STORE_KEY = 'pfdrill.v1';
 const S = {
-  settings: { players: 'rand', depth: 'rand', ante: 'bb', bias: 'balanced', types: { rfi: true, vsOpen: true, vsJam: true, vsLimp: true }, mode: 'theory', pubTable: 'loose', pubStage: 'normal' },
+  settings: { players: 'rand', depths: { short: true, mid: true, deep: true }, ante: 'bb', bias: 'balanced', types: { rfi: true, vsOpen: true, vsJam: true, vsLimp: true }, mode: 'theory', pubTable: 'loose', pubStage: 'normal' },
   stats: { played: 0, best: 0, ok: 0, bad: 0, streak: 0, bestStreak: 0, byType: {} },
   history: [],
   sc: null, answered: null,
 };
 function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify({ settings: S.settings, stats: S.stats, history: S.history.slice(0, 40), quizA: S.quizA, quizB: S.quizB })); } catch (e) { /* storage unavailable */ } }
-function load() { try { const d = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); if (d) { Object.assign(S.settings, d.settings || {}); Object.assign(S.stats, d.stats || {}); S.history = d.history || []; if (d.quizA) S.quizA = d.quizA; if (d.quizB || d.quiz) S.quizB = d.quizB || d.quiz; } } catch (e) { /* ignore */ } }
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    if (!d) return;
+    Object.assign(S.settings, d.settings || {});
+    const old = S.settings.depth; // earlier versions stored one depth ('rand' | 'short' | 'mid' | 'deep')
+    if (old !== undefined) {
+      if (!(d.settings && d.settings.depths) && old !== 'rand') S.settings.depths = { short: old === 'short', mid: old === 'mid', deep: old === 'deep' };
+      delete S.settings.depth;
+    }
+    Object.assign(S.stats, d.stats || {}); S.history = d.history || [];
+    if (d.quizA) S.quizA = d.quizA; if (d.quizB || d.quiz) S.quizB = d.quizB || d.quiz;
+  } catch (e) { /* ignore */ }
+}
 
 const $ = id => document.getElementById(id);
 
@@ -1852,7 +1867,7 @@ function renderRefList() {
 function bindControls() {
   const st = S.settings;
   const sel = (id, key) => { const el = $(id); el.value = st[key]; el.addEventListener('change', () => { st[key] = el.value; save(); newHand(); }); };
-  sel('optPlayers', 'players'); sel('optDepth', 'depth'); sel('optAnte', 'ante'); sel('optBias', 'bias');
+  sel('optPlayers', 'players'); sel('optAnte', 'ante'); sel('optBias', 'bias');
   sel('optMode', 'mode'); sel('optPubTable', 'pubTable'); sel('optPubStage', 'pubStage');
   const syncMode = () => { // pub-only settings and the title pill follow the mode
     const pub = st.mode === 'pub';
@@ -1866,6 +1881,14 @@ function bindControls() {
       const t = b.dataset.t, on = !st.types[t];
       if (!on && Object.values(st.types).filter(Boolean).length <= 1) return; // keep at least one
       st.types[t] = on; b.setAttribute('aria-pressed', on ? 'true' : 'false'); save(); newHand();
+    });
+  });
+  document.querySelectorAll('#depthToggles .tog').forEach(b => {
+    b.setAttribute('aria-pressed', st.depths[b.dataset.d] ? 'true' : 'false');
+    b.addEventListener('click', () => {
+      const d = b.dataset.d, on = !st.depths[d];
+      if (!on && Object.values(st.depths).filter(Boolean).length <= 1) return; // keep at least one
+      st.depths[d] = on; b.setAttribute('aria-pressed', on ? 'true' : 'false'); save(); newHand();
     });
   });
   $('btnNew').addEventListener('click', () => newHand());
