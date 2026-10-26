@@ -1,6 +1,6 @@
 # 홀덤 프리플랍 드릴
 
-**플레이: https://syup5.github.io/holdem-preflop-drill/**
+**플레이: https://syup5.github.io/holdem_strategy_preflop/**
 
 랜덤으로 생성되는 토너먼트 프리플랍 상황에서 폴드·콜·오픈 레이즈(사이즈 포함)·올인을 고르면, 전략서 이론과 13×13 레인지 차트, EV 계산으로 해설해 주는 연습 게임입니다. 설치 없이 브라우저에서 바로 실행됩니다.
 
