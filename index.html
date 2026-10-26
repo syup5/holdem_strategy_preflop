@@ -90,7 +90,7 @@ button{cursor:pointer}
 /* ---------- table ---------- */
 .table-wrap{padding:34px 10px 30px;background:radial-gradient(ellipse at 50% 45%,var(--panel-2) 0%,var(--bg) 70%);border-radius:var(--r)}
 .table-box{position:relative;width:100%;aspect-ratio:1.9/1}
-@media (max-width:640px){.table-box{aspect-ratio:1/1.08}.table-wrap{padding:38px 4px 34px}}
+@media (max-width:640px){.table-box{aspect-ratio:1.42/1}.table-wrap{padding:26px 2px 24px}}
 .rail{position:absolute;inset:4% 5%;border-radius:50%;background:radial-gradient(ellipse at 50% 30%,var(--rail-2),var(--rail) 70%);padding:2.4%;box-shadow:0 18px 40px rgba(0,0,0,.28),inset 0 2px 0 rgba(255,255,255,.08)}
 .felt{position:relative;width:100%;height:100%;border-radius:50%;background:radial-gradient(ellipse at 50% 38%,var(--felt) 0%,var(--felt-2) 78%);box-shadow:inset 0 0 0 2px rgba(255,255,255,.07),inset 0 10px 50px rgba(0,0,0,.4)}
 .felt::after{content:"";position:absolute;inset:11%;border-radius:50%;border:1px solid rgba(255,255,255,.08)}
@@ -298,14 +298,63 @@ table.hist{width:100%;border-collapse:collapse;font-size:.84rem;min-width:560px}
 .ref{transition:filter .2s}
 .box.hiding .ref{filter:blur(9px);pointer-events:none;user-select:none}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* ---------- phone: table, hand and actions in one screen ---------- */
+.settings-btn{display:none;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:5px 12px;font-size:.84rem;font-weight:600;color:var(--ink)}
+.settings-btn[aria-expanded="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.quick{display:none}
+@media (max-width:980px){
+  .quick:not([hidden]){display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel)}
+  .quick.v-best{border-color:var(--best);background:var(--best-soft)}
+  .quick.v-ok{border-color:var(--ok);background:var(--ok-soft)}
+  .quick.v-bad{border-color:var(--bad);background:var(--bad-soft)}
+  .quick .mark{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:.9rem;flex:none}
+  .quick .qt{flex:1 1 auto;min-width:0;display:grid;line-height:1.3}
+  .quick .qt b{font-size:.92rem}
+  .quick .qt span{font-size:.78rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .quick button{flex:none;border-radius:8px;padding:8px 12px;font-weight:700;font-size:.86rem}
+  .quick .qnext{border:none;background:var(--ink);color:var(--panel)}
+  .quick .qwhy{border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+}
 @media (max-width:640px){
+  .wrap{padding-block:10px 32px;gap:10px}
+  .topbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 10px}
+  .brand .eyebrow{display:none}
+  .brand h1{font-size:1.12rem}
+  .settings-btn{display:inline-block}
+  .scores{grid-column:1/-1;gap:2px 14px}
+  .score{display:flex;align-items:baseline;gap:4px}
+  .score .k{font-size:.7rem}
+  .score .v{font-size:1.02rem}
+  #sStreak small{display:none}
+  .controls{display:none;padding:10px 12px}
+  .controls.open{display:flex}
+  .layout{gap:10px}
+  .stage{gap:8px}
+  .seat{width:clamp(52px,16%,70px)}
   .plate{padding:3px 3px 4px;border-radius:8px}
-  .plate .pos{font-size:.8rem}.plate .stk{font-size:.9rem}.plate .chipsline{display:none}
-  .plate .st{font-size:.6rem;padding:0 3px}
-  .order{width:17px;height:17px;font-size:.68rem;top:-8px;left:-7px}
-  .bet{font-size:.78rem}
-  .pcard{width:50px;height:70px}.pcard .r,.pcard .s{font-size:1.6rem}
-  .backs i{width:11px;height:15px}.backs{top:-11px}
+  .plate .pos{font-size:.78rem}.plate .stk{font-size:.88rem}.plate .chipsline{display:none}
+  .plate .st{font-size:.58rem;padding:0 3px;margin-top:1px}
+  .order{width:16px;height:16px;font-size:.64rem;top:-7px;left:-6px}
+  .bet{font-size:.74rem}
+  .pot .lbl{font-size:.6rem}.pot .amt{font-size:1.2rem}.pot .sub{display:none}
+  .blinds-tag{top:64%;font-size:.62rem}
+  .blinds-tag .bl{display:none}
+  .dealer{width:18px;height:18px;font-size:.68rem}
+  .backs i{width:10px;height:14px}.backs{top:-10px}
+  .hero-row{flex-wrap:nowrap;align-items:center;gap:10px;padding:8px 10px}
+  .cards{gap:4px}
+  .pcard{width:38px;height:54px;padding:2px 4px;border-radius:6px}
+  .pcard .r,.pcard .s{font-size:1.25rem}
+  .hand-meta .hn{font-size:1.2rem}.hand-meta .hk{font-size:.68rem;white-space:nowrap}
+  .where{flex:1 1 auto;gap:1px}
+  .where .line1{font-size:.84rem;line-height:1.3}
+  .where .line2{font-size:.76rem;line-height:1.35}
+  .order-strip,.question{display:none}
+  .actions{grid-template-columns:repeat(auto-fit,minmax(76px,1fr));gap:6px}
+  .act{min-height:46px;padding:6px 7px;border-radius:8px}
+  .act .a1{font-size:.8rem;line-height:1.2;padding-right:0}
+  .act .a2,.act .key{display:none}
+  .act .tag{font-size:.6rem;margin-top:2px}
 }
 </style>
 
@@ -317,6 +366,7 @@ table.hist{width:100%;border-collapse:collapse;font-size:.84rem;min-width:560px}
       <span class="eyebrow">Preflop Drill · NLHE Tournament</span>
       <h1>홀덤 프리플랍 드릴</h1>
     </div>
+    <button class="settings-btn" type="button" id="btnSettings" aria-expanded="false" aria-controls="controls">설정</button>
     <div class="scores" aria-live="polite">
       <div class="score"><span class="k">플레이</span><span class="v" id="sPlayed">0</span></div>
       <div class="score"><span class="k">최선</span><span class="v" id="sBest">0<small>%</small></span></div>
@@ -325,7 +375,7 @@ table.hist{width:100%;border-collapse:collapse;font-size:.84rem;min-width:560px}
     </div>
   </header>
 
-  <section class="controls" aria-label="훈련 설정">
+  <section class="controls" id="controls" aria-label="훈련 설정">
     <label class="ctl" for="optPlayers">인원
       <select id="optPlayers">
         <option value="rand">랜덤 (2–9명)</option>
@@ -373,7 +423,7 @@ table.hist{width:100%;border-collapse:collapse;font-size:.84rem;min-width:560px}
   </section>
 
   <main class="layout">
-    <div class="stage">
+    <div class="stage" id="stage">
       <div class="table-wrap">
         <div class="table-box" id="tableBox" aria-label="포커 테이블">
           <div class="rail"><div class="felt"></div></div>
@@ -384,6 +434,7 @@ table.hist{width:100%;border-collapse:collapse;font-size:.84rem;min-width:560px}
       <div class="hero-row" id="heroRow"></div>
       <div class="question"><span id="qText">무엇을 하시겠습니까?</span><span class="hint">단축키: <span class="kbd">F</span> 폴드 · <span class="kbd">C</span> 콜/체크 · <span class="kbd">1–4</span> 레이즈 · <span class="kbd">A</span> 올인 · <span class="kbd">Space</span> 다음</span></div>
       <div class="actions" id="actions"></div>
+      <div class="quick" id="quick" hidden aria-live="polite"></div>
     </div>
     <aside class="panel" id="panel" aria-live="polite"></aside>
   </main>
@@ -1203,7 +1254,7 @@ function load() { try { const d = JSON.parse(localStorage.getItem(STORE_KEY) || 
 
 const $ = id => document.getElementById(id);
 
-function newHand() {
+function newHand(fromUser) {
   const st = S.settings;
   const sc = genScenario(st);
   const eng = engineFor(sc);
@@ -1219,9 +1270,34 @@ function newHand() {
   S.sc = sc; S.answered = null;
   if (ENGINES.size > 60) { const keep = ENGINES.get(sc.id); ENGINES.clear(); ENGINES.set(sc.id, keep); }
   render();
+  if (fromUser === true) scrollToStage();
 }
 
-function render() { renderScores(); renderTable(); renderHeroRow(); renderActions(); renderPanel(); renderHistory(); }
+const isNarrow = () => !!(window.matchMedia && window.matchMedia('(max-width: 980px)').matches);
+function scrollToStage() { // single-column layouts: bring table + hand + actions back into view for the next hand
+  if (!isNarrow()) return;
+  const top = $('stage').getBoundingClientRect().top;
+  if (Math.abs(top) < 4) return;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.scrollTo({ top: window.scrollY + top - 6, behavior: reduce ? 'auto' : 'smooth' });
+}
+
+function render() { renderScores(); renderTable(); renderHeroRow(); renderActions(); renderQuick(); renderPanel(); renderHistory(); }
+
+function renderQuick() { // compact verdict strip under the actions (shown on narrow layouts only)
+  const q = $('quick'), ans = S.answered;
+  if (!ans) { q.hidden = true; q.innerHTML = ''; return; }
+  const sc = S.sc, g = ans.grades[ans.choice];
+  const optLabel = o => o.fam === 'allin' ? `올인 ${fbb(o.amount)}` : o.label;
+  const best = sc.options.filter(o => ans.grades[o.id].v === 'best');
+  const rec = (best.length ? best : sc.options.filter(o => ans.grades[o.id].v === 'ok')).map(optLabel).join(' / ');
+  const head = { best: ['✓', '최선의 플레이'], ok: ['△', '허용 (차선)'], bad: ['✗', '실수'] }[g.v];
+  q.className = `quick v-${g.v}`;
+  q.innerHTML = `<span class="mark" aria-hidden="true">${head[0]}</span><div class="qt"><b>${head[1]}</b><span>추천: ${esc(rec)}</span></div><button type="button" class="qwhy" id="qWhy">해설</button><button type="button" class="qnext" id="qNext">다음</button>`;
+  q.hidden = false;
+  $('qWhy').addEventListener('click', () => $('panel').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  $('qNext').addEventListener('click', () => newHand(true));
+}
 
 function renderScores() {
   const s = S.stats, p = s.played || 0;
@@ -1284,7 +1360,7 @@ function renderTable() {
   });
   const total = deadPot + betsOnTable;
   $('pot').innerHTML = `<span class="lbl">Pot</span><span class="amt">${fbb(total)}</span><span class="sub">${sc.ante ? `앤티 ${fbb(sc.ante)} 포함` : '앤티 없음'} · ${fchips(total * sc.BBc)}</span>`;
-  $('blindsTag').textContent = `블라인드 ${fchips(sc.BBc / 2)} / ${fchips(sc.BBc)}${sc.ante ? ` · BB 앤티 ${fchips(sc.BBc)}` : ''}`;
+  $('blindsTag').innerHTML = `<span class="bl">블라인드 </span>${fchips(sc.BBc / 2)} / ${fchips(sc.BBc)}${sc.ante ? ` · <span class="bl">BB </span>앤티 ${fchips(sc.BBc)}` : ''}`;
   sc._pot = total;
 }
 
@@ -1384,7 +1460,7 @@ function renderPanel() {
     ${chartHTML(ex.chart)}
     <div><h2 style="margin-bottom:6px">참고</h2><ol class="refs">${ex.refs.map(r => `<li>${REFS[r].t} — ${REFS[r].n}. <a href="${REFS[r].u}" target="_blank" rel="noopener">링크</a></li>`).join('')}</ol></div>
     <button class="next" type="button" id="btnNext">다음 상황 <span class="kbd">Space</span></button>`;
-  $('btnNext').addEventListener('click', newHand);
+  $('btnNext').addEventListener('click', () => newHand(true));
 }
 
 function chartHTML(c) {
@@ -1424,8 +1500,7 @@ function answer(id) {
   S.history.unshift({ n: st.played, type: sc.type, N: sc.N, pos: sc.players[sc.heroIdx].label, hand: handName(h), eff: r1(sc.eff), mine: optLabel(opt), rec: (bestOpts.length ? bestOpts : sc.options.filter(o => grades[o.id].v === 'ok')).map(optLabel).join(' / '), v: g.v });
   S.history = S.history.slice(0, 40);
   save();
-  renderScores(); renderActions(); renderPanel(); renderHistory();
-  if (window.matchMedia && window.matchMedia('(max-width: 980px)').matches) $('panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  renderScores(); renderActions(); renderQuick(); renderPanel(); renderHistory();
 }
 
 function renderHistory() {
@@ -1613,7 +1688,12 @@ function bindControls() {
       st.types[t] = on; b.setAttribute('aria-pressed', on ? 'true' : 'false'); save(); newHand();
     });
   });
-  $('btnNew').addEventListener('click', newHand);
+  $('btnNew').addEventListener('click', () => newHand());
+  $('btnSettings').addEventListener('click', () => {
+    const open = !$('controls').classList.contains('open');
+    $('controls').classList.toggle('open', open);
+    $('btnSettings').setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
   let armed = false;
   $('btnReset').addEventListener('click', () => {
     if (!armed) { armed = true; $('btnReset').textContent = '정말 초기화할까요? 다시 누르면 삭제'; $('resetHint').textContent = ''; setTimeout(() => { armed = false; $('btnReset').textContent = '통계 초기화'; }, 4000); return; }
@@ -1626,7 +1706,7 @@ function bindControls() {
     if (ev.target && ev.target.closest && ev.target.closest('#appendix')) return; // appendix quiz has its own buttons
     if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
     const k = ev.key.toUpperCase();
-    if (S.answered) { if (k === ' ' || k === 'ENTER' || k === 'N') { ev.preventDefault(); newHand(); } return; }
+    if (S.answered) { if (k === ' ' || k === 'ENTER' || k === 'N') { ev.preventDefault(); newHand(true); } return; }
     let o = S.sc.options.find(x => x.key === k);
     if (!o && k === 'F') o = S.sc.options.find(x => x.fam === 'call' && S.sc.players[S.sc.heroIdx].k === 0 && S.sc.type === 'vsLimp');
     if (o) { ev.preventDefault(); answer(o.id); }
