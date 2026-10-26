@@ -823,6 +823,9 @@ function vsOpenEngine(sc) {
   const hero = sc.players[sc.heroIdx], opener = sc.players[sc.villIdx];
   const kh = hero.k, ko = opener.k, eff = sc.eff, R = sc.R, D = D_OF(sc);
   const role = kh === 0 ? 'BB' : kh === 1 ? 'SB' : 'IP';
+  // postflop position: non-blind callers have it; the BB has it against an SB open (SB acts first postflop),
+  // except heads-up where the button posts the SB and acts last postflop
+  const ipPost = role === 'IP' || (role === 'BB' && ko === 1 && sc.N > 2);
   const group = sc.N === 2 ? 'HU' : GROUP_OF_K(ko);
   const CH = DEF[role][group];
   const zone = eff <= 25 ? 'short' : eff <= 35 ? 'trans' : 'deep';
@@ -848,7 +851,7 @@ function vsOpenEngine(sc) {
     const eqO = eqVs(h, O)[0];
     let out = { evJ, eqO, zone };
     if (zone === 'short') {
-      const evC = role === 'BB' ? realization(h, eff, false) * eqO * potAfter - toCall : null;
+      const evC = role === 'BB' ? realization(h, eff, ipPost) * eqO * potAfter - toCall : null;
       const cand = { fold: 0, allin: evJ }; if (role === 'BB') cand.call = evC;
       let best = 'fold'; for (const k in cand) if (cand[k] > cand[best] + 1e-9) best = k;
       const mx = cand[best], g = k => k === best ? 'best' : (cand[k] >= mx - 0.3 ? 'ok' : 'bad');
@@ -864,14 +867,14 @@ function vsOpenEngine(sc) {
     return Object.assign(out, c, { f });
   }
   function sizeGrade(amt) {
-    const x = amt / R, ip = role === 'IP';
+    const x = amt / R, ip = ipPost;
     if (zone === 'short') return TRAP.has(sc._h) ? ['ok', 'AA·KK는 작은 3벳으로 올인을 유도하는 트랩도 가능합니다.'] : ['bad', `유효 ${fbb(eff)}에서 작은 3벳은 스택의 큰 부분을 넣은 뒤 올인에 폴드할 수 없게 만듭니다. 3벳은 올인으로 하세요.`];
     if (amt > 0.45 * eff) return ['bad', `3벳 ${fbb(amt)}는 유효 스택의 ${fpct(amt / eff * 100)}입니다. 이만큼 넣으면 사실상 커밋이므로 올인이 낫습니다.`];
     if (ip) {
       if (zone === 'trans') return x <= 3.05 ? ['best', ''] : ['ok', '스택이 얕을수록 3벳을 작게(2.5~3배) 가져갑니다.'];
       if (x >= 2.95 && x <= 3.05) return ['best', ''];
       if (x < 2.95) return ['ok', 'IP 3벳은 오픈의 약 3배가 표준입니다. 2.5배는 상대에게 좋은 콜 가격을 줍니다.'];
-      return ['ok', 'IP에서는 3배면 충분합니다. 4배는 OOP(블라인드) 표준입니다.'];
+      return ['ok', `IP${role === 'BB' ? '(SB 오픈을 상대하는 BB)' : ''}에서는 3배면 충분합니다. 4배는 포지션이 없을 때(OOP) 표준입니다.`];
     }
     if (zone === 'trans') return x <= 3.05 && x >= 2.95 ? ['best', ''] : x > 3.05 ? ['ok', '얕은 스택에서는 OOP라도 3배 정도로 작게 3벳합니다.'] : ['ok', 'OOP 3벳은 조금 더 크게(약 3배 이상) 가져갑니다.'];
     if (x >= 3.95 && x <= 4.05) return ['best', ''];
@@ -884,7 +887,7 @@ function vsOpenEngine(sc) {
     return e.f.fold === 'best' && DEF.BB.BTN.call[h] === 0 && DEF.BB.BTN.r3[h] === 0 && (evJ0(e) < -1.5);
   }
   const evJ0 = e => e.evJ == null ? -9 : e.evJ;
-  return { zone, role, group, O, RS, toCall, potNow, potAfter, evalHand, sizeGrade, trivial, h0, o0 };
+  return { zone, role, ipPost, group, O, RS, toCall, potNow, potAfter, evalHand, sizeGrade, trivial, h0, o0 };
 }
 
 function vsJamEngine(sc) {
@@ -1080,13 +1083,13 @@ function explain(sc, h) {
       out.bullets.push(`${opener.label}와의 대결만 보면 올인 EV ≈ 폴드 확률 ${fpct((1 - rs.pc) * 100)} × 현재 팟 ${fbb(eng.RS.potBefore)} + 콜 확률 ${fpct(rs.pc * 100)} × (에퀴티 ${fpct(rs.eqc * 100)} × 최종 팟 ${fbb(eng.RS.finalPot)} − ${fbb(eff - eng.h0)}) = ${fev(rs.evHU)}. 상대는 오픈 레인지의 약 ${fpct(eng.RS.callPctOfOpen)}로 콜합니다(균형 근사).`);
       if (eng.RS.nBehind > 0) out.bullets.push(`내 뒤 ${eng.RS.nBehind}명 중 누군가 TT+/AQ+로 깨어날 확률 ${fpct(eng.RS.pWake * 100)}를 반영하면(그때 내 에퀴티 ${fpct(rs.eqw * 100)}) 최종 올인 EV = <b>${fev(rs.ev)}</b>입니다.`);
       else out.bullets.push(`BB라 뒤에 남은 사람이 없으므로 최종 올인 EV = <b>${fev(rs.ev)}</b>입니다.`);
-      if (role === 'BB') out.bullets.push(`콜 EV(실현율 ${Math.round(realization(h, eff, false) * 100)}% 근사) = 실현율 × ${fpct(e.eqO * 100)} × ${fbb(eng.potAfter)} − ${fbb(eng.toCall)} = <b>${fev(e.evC)}</b>. 실현율은 포지션이 없을 때 에퀴티를 다 가져가지 못하는 정도를 반영합니다.`);
+      if (role === 'BB') out.bullets.push(`콜 EV(실현율 ${Math.round(realization(h, eff, eng.ipPost) * 100)}% 근사) = 실현율 × ${fpct(e.eqO * 100)} × ${fbb(eng.potAfter)} − ${fbb(eng.toCall)} = <b>${fev(e.evC)}</b>. ${eng.ipPost ? 'SB 오픈을 상대하면 포스트플랍에서 SB가 먼저 행동하므로 BB가 포지션(IP)을 가져 실현율이 높습니다.' : '실현율은 포지션이 없을 때 에퀴티를 다 가져가지 못하는 정도를 반영합니다.'}`);
       out.refs.push('kill', 'mop');
     } else {
       if (role === 'IP') out.bullets.push('포지션이 있는 자리(IP)는 3벳과 콜을 섞습니다. 콜은 포스트플랍에서 잘 플레이되는 페어·수딧 브로드웨이·수딧 커넥터 위주로 구성합니다.');
       if (role === 'SB') out.bullets.push('SB는 포스트플랍 내내 포지션이 없고 BB가 뒤에 남아 스퀴즈 위험까지 있어 <b>3벳 아니면 폴드</b>가 기본입니다.');
-      if (role === 'BB') out.bullets.push(`BB는 이미 1BB를 냈고 마지막에 행동하므로 가격이 가장 좋습니다. 콜 ${fbb(eng.toCall)}로 ${fbb(eng.potAfter)} 팟을 다투므로 필요 에퀴티는 <b>${fpct(req * 100)}</b>(실현율 감안 전)입니다.`);
-      out.bullets.push(`3벳 레인지 = 밸류(상대 레인지를 압도하는 QQ+, AK 등) + 블러프(A5s~A2s처럼 A 블로커가 있고 플레이어빌리티가 좋은 핸드). 사이즈는 IP 약 <b>3배</b>, OOP(블라인드) 약 <b>4배</b>입니다.`);
+      if (role === 'BB') out.bullets.push(`BB는 이미 1BB를 냈고 프리플랍 마지막에 행동하므로 가격이 가장 좋습니다. 콜 ${fbb(eng.toCall)}로 ${fbb(eng.potAfter)} 팟을 다투므로 필요 에퀴티는 <b>${fpct(req * 100)}</b>(실현율 감안 전)입니다.${eng.ipPost ? ' 상대가 SB이면 포스트플랍에서는 SB가 먼저 행동하므로 <b>BB가 포지션(IP)</b>을 가집니다.' : ''}`);
+      out.bullets.push(`3벳 레인지 = 밸류(상대 레인지를 압도하는 QQ+, AK 등) + 블러프(A5s~A2s처럼 A 블로커가 있고 플레이어빌리티가 좋은 핸드). 사이즈는 포지션이 있으면(IP) 오픈의 약 <b>3배</b>, 없으면(OOP) 약 <b>4배</b>이고, 지금은 <b>${eng.ipPost ? 'IP → 약 3배' : 'OOP → 약 4배'}</b>입니다.`);
       if (e.filtered) out.bullets.push(`스몰 페어·작은 수딧 커넥터의 콜은 임플라이드 오즈에 기대는데, 플랍 셋 확률은 약 11.8%(약 7.5:1)입니다. 남은 스택이 콜 금액의 15~20배 이상이어야 하는데 지금은 ${r1(eff / eng.toCall)}배라 폴드합니다.`);
       if (e.zone === 'trans' && eng.RS) { out.kpis.push(['올인 EV', fev(e.evJ)]); out.bullets.push(`유효 ${fbb(eff)}에서는 3벳 올인도 강력한 무기입니다. 이 핸드의 올인 EV ≈ <b>${fev(e.evJ)}</b>(상대 콜 레인지는 오픈의 약 ${fpct(eng.RS.callPctOfOpen)}).`); }
       out.refs.push('mpt', 'nltp');
