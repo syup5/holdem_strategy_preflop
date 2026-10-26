@@ -300,6 +300,8 @@ table.hist{width:100%;border-collapse:collapse;font-size:.84rem;min-width:560px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 /* ---------- phone: table, hand and actions in one screen ---------- */
 .settings-btn{display:none;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:5px 12px;font-size:.84rem;font-weight:600;color:var(--ink)}
+.mode-pill{display:inline-block;vertical-align:4px;margin-left:6px;font-size:.62em;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--accent);color:#1b1305;letter-spacing:.02em}
+.ctl.pub-only{border-left:2px solid var(--accent);padding-left:8px}
 .settings-btn[aria-expanded="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
 .quick{display:none}
 @media (max-width:980px){
@@ -364,7 +366,7 @@ table.hist{width:100%;border-collapse:collapse;font-size:.84rem;min-width:560px}
   <header class="topbar">
     <div class="brand">
       <span class="eyebrow">Preflop Drill · NLHE Tournament</span>
-      <h1>홀덤 프리플랍 드릴</h1>
+      <h1>홀덤 프리플랍 드릴 <span class="mode-pill" id="modePill" hidden>홀덤펍</span></h1>
     </div>
     <button class="settings-btn" type="button" id="btnSettings" aria-expanded="false" aria-controls="controls">설정</button>
     <div class="scores" aria-live="polite">
@@ -376,6 +378,25 @@ table.hist{width:100%;border-collapse:collapse;font-size:.84rem;min-width:560px}
   </header>
 
   <section class="controls" id="controls" aria-label="훈련 설정">
+    <label class="ctl" for="optMode">모드
+      <select id="optMode">
+        <option value="theory">이론 (GTO·내쉬)</option>
+        <option value="pub">홀덤펍</option>
+      </select>
+    </label>
+    <label class="ctl pub-only" for="optPubTable">테이블 성향
+      <select id="optPubTable">
+        <option value="loose">콜 많음 (루즈)</option>
+        <option value="tight">폴드 많음 (타이트)</option>
+      </select>
+    </label>
+    <label class="ctl pub-only" for="optPubStage">대회 구간
+      <select id="optPubStage">
+        <option value="rebuy">리바이 구간</option>
+        <option value="normal">일반</option>
+        <option value="bubble">버블·시상권 (ICM)</option>
+      </select>
+    </label>
     <label class="ctl" for="optPlayers">인원
       <select id="optPlayers">
         <option value="rand">랜덤 (2–9명)</option>
@@ -455,6 +476,7 @@ table.hist{width:100%;border-collapse:collapse;font-size:.84rem;min-width:560px}
         <p><b>숏 스택</b>: 169×169 프리플랍 올인 에퀴티 행렬(매치업당 몬테카를로 약 24,000회)로 chipEV 내쉬 균형 푸시/폴드 차트를 직접 계산했습니다(동일 스택, 오버콜 무시, 카드 제거 효과 반영). 리스틸·콜 판단은 이 행렬로 실시간 EV를 계산합니다.</p>
         <p>모든 판단은 chipEV 기준입니다. 버블·파이널 테이블처럼 ICM 압력이 큰 상황에서는 더 타이트해야 합니다.</p>
         <p><b>핸드 퍼센트</b>: 같은 에퀴티 행렬로 계산한 랜덤 핸드 상대 올인 에퀴티 순위입니다(부록 B).</p>
+        <p><b>홀덤펍 모드</b>: 카드 확률은 같고 상대 행동만 바꿉니다. 상대가 균형 전략 대신 정해진 범위로 올인에 콜·푸시한다고 보고(콜 많음: 아무 페어·아무 에이스·브로드웨이, 폴드 많음: 77+·AJ+) EV를 다시 계산합니다. 딥스택에서는 얼리 포지션 약한 오프수트·순수 스틸·블러프 3벳을 줄이고, 오픈 2.5~3BB, 밸류 3벳 4배, 아이소 4~5BB + 림퍼당 1BB로 크게 가져갑니다. 버블·시상권은 ICM 근사로 올인 콜에 필요 에퀴티 +8%p, 푸시에 유효 스택 5%의 여유를 요구합니다. 오픈은 3~4BB, 림프가 더 자주 나오고, 스택은 숏·미들 위주로 출제됩니다.</p>
       </div>
       <h2 style="margin-top:8px">참고 문헌</h2>
       <ol class="refs" id="refList"></ol>
@@ -677,6 +699,10 @@ const LABELS = {
   2: ['BTN/SB', 'BB'],
 };
 const TYPE_W = { rfi: 4, vsOpen: 3, vsJam: 2, vsLimp: 1.3 };
+const TYPE_W_PUB = { rfi: 3.5, vsOpen: 3, vsJam: 2.2, vsLimp: 2.6 }; // pubs: limpers are common
+const PUB_TABLE_KO = { loose: '콜 많음', tight: '폴드 많음' };
+const PUB_STAGE_KO = { rebuy: '리바이 구간', normal: '일반', bubble: '버블·시상권' };
+const modeLabel = sc => (sc.mode && sc.mode.pub ? `홀덤펍 · ${PUB_TABLE_KO[sc.mode.table]} · ${PUB_STAGE_KO[sc.mode.stage]}` : '이론 (GTO·내쉬)');
 const TYPE_KO = { rfi: '오픈 기회', vsOpen: '레이즈 상대', vsJam: '올인 상대', vsLimp: '림퍼 상대' };
 const BB_LEVELS = [200, 300, 400, 500, 600, 800, 1000, 1200, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 8000, 10000];
 
@@ -686,8 +712,8 @@ const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 function gauss() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
 function wpick(keys, weights) { const tot = keys.reduce((s, k) => s + weights[k], 0); let r = Math.random() * tot; for (const k of keys) { r -= weights[k]; if (r <= 0) return k; } return keys[keys.length - 1]; }
 function pickN(s) { if (s !== 'rand') return +s; const r = Math.random(); return r < .35 ? 9 : r < .45 ? 8 : r < .52 ? 7 : r < .8 ? 6 : r < .88 ? 5 : r < .93 ? 4 : r < .97 ? 3 : 2; }
-function pickDepth(s) {
-  const b = s !== 'rand' ? s : (() => { const r = Math.random(); return r < .36 ? 'short' : r < .7 ? 'mid' : 'deep'; })();
+function pickDepth(s, pub) { // pub tournaments have fast levels: mostly short/mid stacks
+  const b = s !== 'rand' ? s : (() => { const r = Math.random(); return pub ? (r < .45 ? 'short' : r < .9 ? 'mid' : 'deep') : (r < .36 ? 'short' : r < .7 ? 'mid' : 'deep'); })();
   return b === 'short' ? rnd(4, 15) : b === 'mid' ? rnd(15, 40) : rnd(40, 120);
 }
 
@@ -699,9 +725,10 @@ function genScenario(st) {
   throw new Error('scenario generation failed');
 }
 function tryGen(st) {
+  const pub = st.mode === 'pub';
   let types = Object.keys(TYPE_W).filter(t => st.types[t]);
   if (!types.length) types = ['rfi'];
-  const type = wpick(types, TYPE_W);
+  const type = wpick(types, pub ? TYPE_W_PUB : TYPE_W);
   const N = pickN(st.players);
   const labels = LABELS[N];
   const ante = st.ante === 'bb' ? 1 : 0;
@@ -713,11 +740,11 @@ function tryGen(st) {
     const cands = [];
     for (let i = 0; i < heroIdx; i++) { const k = N - 1 - i; if (k >= 2 || (k === 1 && heroIdx === N - 1)) cands.push(i); }
     if (!cands.length) return null;
-    const nL = Math.min(cands.length, Math.random() < .7 ? 1 : 2);
+    const rl = Math.random(), nL = Math.min(cands.length, pub ? (rl < .5 ? 1 : rl < .85 ? 2 : 3) : (rl < .7 ? 1 : 2));
     for (let i = cands.length - 1; i > 0; i--) { const j = rint(0, i); [cands[i], cands[j]] = [cands[j], cands[i]]; }
     limpers = cands.slice(0, nL).sort((a, b) => a - b);
   }
-  const heroBB = pickDepth(st.depth);
+  const heroBB = pickDepth(st.depth, pub);
   const avg = Math.max(10, heroBB * rnd(0.75, 1.6));
   const BBc = pick(BB_LEVELS);
   const players = labels.map((label, i) => ({
@@ -731,13 +758,16 @@ function tryGen(st) {
   const unit = BBc / 20;
   players.forEach(p => { p.chips = Math.max(unit * 40, Math.round(p.bb * BBc / unit) * unit); p.bb = p.chips / BBc; });
 
-  const sc = { id: 'sc' + (++SC_SEQ) + '_' + Math.random().toString(36).slice(2, 8), type, N, ante, BBc, players, heroIdx, villIdx, limpers, R: 0 };
+  const sc = { id: 'sc' + (++SC_SEQ) + '_' + Math.random().toString(36).slice(2, 8), type, N, ante, BBc, players, heroIdx, villIdx, limpers, R: 0,
+    mode: pub ? { pub: true, table: st.pubTable || 'loose', stage: st.pubStage || 'normal' } : { pub: false } };
   // blinds
   players.forEach(p => { if (p.k === 1) p.bet = 0.5; if (p.k === 0) p.bet = 1; });
   const hero = players[heroIdx];
   if (type === 'vsOpen') {
     const v = players[villIdx]; const s = wager(sc, v);
-    sc.R = v.k === 1 ? (N === 2 ? (s <= 25 ? 2 : pick([2, 2.5])) : (s > 40 ? 3 : 2.5)) : s <= 25 ? 2 : s <= 40 ? pick([2, 2.2]) : pick([2.2, 2.5]);
+    sc.R = pub // pub regulars open bigger: 3–4BB deep, 2.5–3BB short
+      ? (v.k === 1 ? (s > 25 ? 3.5 : 3) : s <= 25 ? pick([2.5, 3]) : pick([3, 3.5, 4]))
+      : v.k === 1 ? (N === 2 ? (s <= 25 ? 2 : pick([2, 2.5])) : (s > 40 ? 3 : 2.5)) : s <= 25 ? 2 : s <= 40 ? pick([2, 2.2]) : pick([2.2, 2.5]);
     v.st = 'raise'; v.bet = sc.R;
   }
   if (type === 'vsJam') { const v = players[villIdx]; v.st = 'jam'; v.bet = wager(sc, v); }
@@ -782,9 +812,19 @@ function rfiEngine(sc) {
   const hero = sc.players[sc.heroIdx], k = hero.k, eff = sc.eff, isSB = k === 1;
   const HU = sc.N === 2, oop = isSB && !HU; // heads-up button/SB has position postflop
   const zone = zoneOfRfi(eff), Rw = rfiOf(sc, k);
+  const pub = isPub(sc), icm = ICM(sc);
+  // pub: shove EV against players who call with a fixed loose/tight range (replaces the Nash threshold)
+  const PEV = pub && eff <= 25 ? HANDS.map(h => pushEVvs(h, k, eff, D_OF(sc), PUB_CALL[pubKey(sc)])) : null;
   function evalHand(h) {
-    const w = Rw[h], pth = pushTh(sc, k, h), prem = PREM_OPEN.has(h);
-    const push = pth >= eff - 1e-6, near = Math.abs(pth - eff) <= 1.0;
+    const pth = pushTh(sc, k, h), prem = PREM_OPEN.has(h);
+    let w = Rw[h], pubNote = null;
+    let push = pth >= eff - 1e-6, near = Math.abs(pth - eff) <= 1.0;
+    if (PEV) { const thr = icm.push * eff; push = PEV[h] > thr; near = Math.abs(PEV[h] - thr) <= 0.3; }
+    if (pub && (zone === 'C' || zone === 'D') && w > 0) {
+      if (k >= 4 && handKind(h) === 'offsuit' && !EP_OFF_KEEP[h]) { w = 0; pubNote = 'epOff'; }
+      else if (k <= 3 && HAND_PCT[h] > 50 && !isSpec(h, 'T')) { w = 0; pubNote = 'steal'; }
+      else if (sc.mode.stage === 'bubble' && w < 1) { w = 0; pubNote = 'icm'; }
+    }
     let f = V('bad', 'bad', 'bad', 'bad');
     if (zone === 'A') {
       if (push) { f.allin = 'best'; if (near) f.fold = 'ok'; } else { f.fold = 'best'; if (near) f.allin = 'ok'; }
@@ -804,10 +844,17 @@ function rfiEngine(sc) {
       if (zone === 'C' && eff <= 25 && push && !prem) f.allin = 'ok';
       if (isSB && w > 0) f.call = 'ok';
     }
-    return { f, w, pth, push, near, prem };
+    if (pubNote && f.raise === 'bad') f.raise = 'ok'; // still a theory open, just not the pub adjustment
+    return { f, w, pth, push, near, prem, pubNote, pev: PEV ? PEV[h] : null };
   }
   function sizeGrade(amt) {
     const a = r1(amt);
+    if (pub && (zone === 'C' || zone === 'D')) { // pubs call a lot: open a bit bigger
+      const lo = oop ? 3 : 2.5, hi = oop ? (zone === 'D' ? 4 : 3) : (zone === 'D' ? 3 : 2.5);
+      if (a >= lo - 1e-9 && a <= hi + 1e-9) return ['best', ''];
+      if (a >= lo - 0.5 - 1e-9 && a <= hi + 1 + 1e-9) return ['ok', `홀덤펍에서는 콜이 많아 ${fbb(lo)}${hi > lo ? `~${fbb(hi)}` : ''}로 조금 크게 엽니다.`];
+      return ['bad', a < lo ? `콜이 많은 테이블에서 ${fbb(a)}는 너무 작아 여러 명이 싸게 따라옵니다.` : `${fbb(a)}는 너무 큽니다. ${fbb(lo)}${hi > lo ? `~${fbb(hi)}` : ''}면 충분합니다.`];
+    }
     if (zone === 'A' || zone === 'B') {
       if (a <= 2) return ['best', ''];
       if (a <= 2.5) return ['ok', '이 스택에서는 2BB(민레이즈)면 충분합니다.'];
@@ -831,10 +878,10 @@ function rfiEngine(sc) {
   function trivial(h) {
     const e = evalHand(h);
     if (EASY.has(h)) return true;
-    if (zone === 'A') return Math.abs(e.pth - eff) > 6;
+    if (zone === 'A') return e.pev != null ? Math.abs(e.pev) > 2.5 : Math.abs(e.pth - eff) > 6;
     return e.f.fold === 'best' && RFI[1][h] === 0 && e.pth < eff - 3;
   }
-  return { zone, evalHand, sizeGrade, trivial };
+  return { zone, pub, evalHand, sizeGrade, trivial };
 }
 
 /* ---- reshove model: hero 3-bet jams over a single opener ----
@@ -842,10 +889,43 @@ function rfiEngine(sc) {
    jam-or-fold game between hero and opener, solved by fictitious play. */
 const WAKE = parseRange('TT+, AQs+, AKo');
 const WAKE_P = rangePct(WAKE) / 100;
-function solveReshove(O, R, eff, D, h0, o0, nBehind) {
+
+/* ---- 홀덤펍 mode: opponents play fixed (exploitable) ranges instead of equilibrium ---- */
+const PUB_CALL = { // what pub players call an all-in with
+  tight: parseRange('77+, ATs+, AJo+, KQs'),
+  loose: parseRange('22+, A2s+, A2o+, K8s+, KTo+, QTs+, QJo, JTs'),
+  rebuy: parseRange('22+, A2s+, A2o+, K2s+, K7o+, Q8s+, QTo+, J9s+, JTo, T9s, 98s'),
+};
+const PUB_PUSH = { // what loose pub players shove with (on top of the Nash range)
+  loose: parseRange('22+, A2s+, A2o+, K7s+, KTo+, Q9s+, QTo+, J9s+, JTo, T9s, 98s, 87s, 76s, 65s'),
+  rebuy: parseRange('22+, A2s+, A2o+, K2s+, K8o+, Q8s+, Q9o+, J8s+, J9o+, T8s+, T9o, 97s+, 86s+, 75s+, 64s+, 54s'),
+};
+const PUB_WAKE = { tight: WAKE, loose: parseRange('77+, ATs+, AJo+, KQs'), rebuy: parseRange('55+, A8s+, ATo+, KJs+, KQo') };
+const PUB_BLUFF3 = parseRange('A5s-A2s, K9s-K6s, Q9s-Q8s, J9s-J8s, T9s-T8s, 98s-97s, 87s-86s, 76s-75s, 65s-64s, 54s');
+const OFF_BROADWAY = parseRange('AJo-ATo, KQo-KTo, QJo-QTo, JTo');
+const EP_OFF_KEEP = parseRange('AJo+, KQo');
+const isPub = sc => !!(sc.mode && sc.mode.pub);
+const pubKey = sc => (sc.mode.stage === 'rebuy' ? (sc.mode.table === 'tight' ? 'loose' : 'rebuy') : sc.mode.table); // rebuy: one notch looser
+const ICM = sc => (isPub(sc) && sc.mode.stage === 'bubble' ? { call: 0.08, push: 0.05 } : { call: 0, push: 0 });
+const PUB_CALL_KO = { tight: '77+·AJ+ 같은 강한 핸드만', loose: '아무 페어·아무 에이스·브로드웨이', rebuy: '아무 페어·에이스·킹과 웬만한 브로드웨이' };
+
+// EV of an open-shove when every player behind calls with the same fixed range C (callers act in order, no overcalls)
+function pushEVvs(h, k, S, D, C) {
+  const p0 = k === 1 ? 0.5 : 0, c0 = k === 1 ? [1] : [...Array(k - 2).fill(0), 0.5, 1];
+  let callP = 0, win = 0; const base = h * 169;
+  for (let v = 0; v < 169; v++) { const c = C[v]; if (!c) continue; const w = W[base + v] * c; callP += w; win += w * EQ[base + v]; }
+  callP /= 1225; win /= 1225;
+  let reach = 1, ev = 0;
+  for (const c of c0) { ev += reach * (win * (2 * S + D - p0 - c) - callP * (S - p0)); reach *= 1 - callP; }
+  return ev + reach * D;
+}
+
+function solveReshove(O, R, eff, D, h0, o0, nBehind, opts = {}) {
   const potBefore = D + R - o0, finalPot = 2 * eff + D - h0 - o0, potWake = 2 * eff + D + R - h0 - o0;
-  const pWake = 1 - Math.pow(1 - WAKE_P, nBehind);
+  const wake = opts.wake || WAKE, wakeP = opts.wake ? rangePct(opts.wake) / 100 : WAKE_P;
+  const pWake = 1 - Math.pow(1 - wakeP, nBehind);
   const J = new Float32Array(169), C = new Float32Array(169).fill(0.5);
+  if (opts.fixedCall) for (let v = 0; v < 169; v++) C[v] = opts.fixedCall[v] ? 1 : 0; // pub: opener calls with a fixed range
   for (let h = 0; h < 169; h++) J[h] = eqVs(h, O)[0] > 0.52 ? 1 : 0;
   const jamEV = h => {
     let tot = 0, cw = 0, win = 0; const base = h * 169;
@@ -855,10 +935,10 @@ function solveReshove(O, R, eff, D, h0, o0, nBehind) {
     }
     const pc = tot ? cw / tot : 0, eqc = cw > 0 ? win / cw : 0;
     const evHU = (1 - pc) * potBefore + pc * (eqc * finalPot - (eff - h0));
-    const eqw = eqVs(h, WAKE)[0], evWake = eqw * potWake - (eff - h0);
+    const eqw = eqVs(h, wake)[0], evWake = eqw * potWake - (eff - h0);
     return { ev: (1 - pWake) * evHU + pWake * evWake, evHU, pc, eqc, eqw, evWake };
   };
-  for (let t = 0; t < 40; t++) {
+  for (let t = 0; t < (opts.fixedCall ? 0 : 40); t++) {
     const a = 1 / (t + 2);
     const Cbr = new Float32Array(169), Jbr = new Float32Array(169);
     for (let v = 0; v < 169; v++) { if (!O[v]) continue; const [e, m] = eqVs(v, J); Cbr[v] = m > 0 && e * finalPot - (eff - R) > 0 ? 1 : 0; }
@@ -892,11 +972,18 @@ function vsOpenEngine(sc) {
   const zone = eff <= 25 ? 'short' : eff <= 35 ? 'trans' : 'deep';
   const O = rfiOf(sc, ko);
   const h0 = kh === 0 ? 1 : kh === 1 ? 0.5 : 0, o0 = ko === 1 ? 0.5 : 0;
-  const RS = eff <= 40 ? solveReshove(O, R, eff, D, h0, o0, kh) : null;
+  const pub = isPub(sc), icm = ICM(sc), key = pub ? pubKey(sc) : null;
+  const RS = eff <= 40 ? solveReshove(O, R, eff, D, h0, o0, kh, pub ? { fixedCall: PUB_CALL[key], wake: PUB_WAKE[key] } : {}) : null;
   const toCall = R - h0, potNow = D + R - o0, potAfter = potNow + toCall;
   function chartFams(h) {
-    let t3 = CH.r3[h], tc = CH.call[h], filtered = false;
-    if (role !== 'BB' && eff < 50 && isSpec(h) && tc > 0 && t3 === 0) { tc = 0; filtered = true; }
+    let t3 = CH.r3[h], tc = CH.call[h], filtered = false, pubNote = null;
+    if (pub) {
+      if (t3 > 0 && PUB_BLUFF3[h]) { t3 = 0; pubNote = 'bluff3'; }          // callers don't fold to 3-bets
+      else if (t3 > 0 && t3 < 1) { t3 = 1; pubNote = 'value3'; }            // strong mixed hands become value 3-bets
+      if (tc > 0 && t3 === 0 && OFF_BROADWAY[h] && (group === 'EP' || group === 'MP')) { tc = 0; pubNote = 'offbw'; }
+      if (sc.mode.stage === 'bubble' && tc > 0 && tc < 1) { tc = 0; pubNote = pubNote || 'icm'; }
+    }
+    if (role !== 'BB' && eff < (pub ? 30 : 50) && isSpec(h) && tc > 0 && t3 === 0) { tc = 0; filtered = true; }
     const f = V('bad', 'bad', 'bad', 'bad');
     if (t3 >= 1) { f.raise = 'best'; if (tc > 0) f.call = 'ok'; }
     else if (t3 > 0 && tc >= 1) { f.raise = 'best'; f.call = 'best'; }
@@ -905,7 +992,9 @@ function vsOpenEngine(sc) {
     else if (tc >= 1) f.call = 'best';
     else if (tc > 0) { f.call = 'best'; f.fold = 'ok'; }
     else f.fold = 'best';
-    return { f, t3, tc, filtered };
+    if (pubNote === 'bluff3' && f.raise === 'bad') f.raise = 'ok';
+    if (pubNote === 'offbw' && f.call === 'bad') f.call = 'ok';
+    return { f, t3, tc, filtered, pubNote };
   }
   function evalHand(h) {
     const evJ = RS ? RS.res[h].ev : null;
@@ -913,24 +1002,33 @@ function vsOpenEngine(sc) {
     let out = { evJ, eqO, zone };
     if (zone === 'short') {
       const evC = role === 'BB' ? realization(h, eff, ipPost) * eqO * potAfter - toCall : null;
-      const cand = { fold: 0, allin: evJ }; if (role === 'BB') cand.call = evC;
+      const cand = { fold: 0, allin: evJ - icm.push * eff }; if (role === 'BB') cand.call = evC;
       let best = 'fold'; for (const k in cand) if (cand[k] > cand[best] + 1e-9) best = k;
       const mx = cand[best], g = k => k === best ? 'best' : (cand[k] >= mx - 0.3 ? 'ok' : 'bad');
       const f = V(g('fold'), role === 'BB' ? g('call') : (TRAP.has(h) && eff >= 15 ? 'ok' : 'bad'), TRAP.has(h) ? 'ok' : 'bad', g('allin'));
       return Object.assign(out, { f, evC });
     }
-    const c = chartFams(h); const f = c.f;
+    const c = chartFams(h); const f = c.f, jt = icm.push * eff; // bubble: a jam must clear an ICM margin
     if (zone === 'trans') {
       if (PREM_3B.has(h)) { f.raise = 'best'; f.allin = 'ok'; }
-      else if (c.t3 > 0 && evJ > 0) f.allin = 'best';
-      else if (evJ > 0.3) f.allin = 'ok';
-    } else if (RS && c.t3 > 0 && evJ > 0 && !TRAP.has(h)) f.allin = 'ok';
-    return Object.assign(out, c, { f });
+      else if (c.t3 > 0 && evJ > jt) f.allin = 'best';
+      else if (evJ > jt + 0.3) f.allin = 'ok';
+    } else if (RS && c.t3 > 0 && evJ > jt && !TRAP.has(h)) f.allin = 'ok';
+    // the recommended 3-bet size would put 45%+ of the stack in: shallow enough that a value 3-bet should just be a jam
+    const ideal = pub ? 4 : zone === 'trans' ? 3 : (ipPost ? 3 : 4);
+    let commit = false;
+    if (f.raise === 'best' && ideal * R > 0.45 * eff) { commit = true; f.raise = 'ok'; if (c.t3 >= 1 || PREM_3B.has(h)) f.allin = 'best'; else if (f.call !== 'best') f.fold = 'best'; }
+    return Object.assign(out, c, { f, commit, idealSize: ideal * R });
   }
   function sizeGrade(amt) {
     const x = amt / R, ip = ipPost;
     if (zone === 'short') return TRAP.has(sc._h) ? ['ok', 'AA·KK는 작은 3벳으로 올인을 유도하는 트랩도 가능합니다.'] : ['bad', `유효 ${fbb(eff)}에서 작은 3벳은 스택의 큰 부분을 넣은 뒤 올인에 폴드할 수 없게 만듭니다. 3벳은 올인으로 하세요.`];
     if (amt > 0.45 * eff) return ['bad', `3벳 ${fbb(amt)}는 유효 스택의 ${fpct(amt / eff * 100)}입니다. 이만큼 넣으면 사실상 커밋이므로 올인이 낫습니다.`];
+    if (pub) { // value 3-bets against players who call too much: go big
+      if (x >= 3.95) return ['best', ''];
+      if (x >= 2.95) return ['ok', '홀덤펍 상대는 3벳에도 콜이 많으니 밸류 3벳은 오픈의 약 4배로 크게 가져갑니다.'];
+      return ['bad', '콜이 많은 상대에게 작은 3벳은 좋은 가격만 줍니다. 약 4배로 크게 하세요.'];
+    }
     if (ip) {
       if (zone === 'trans') return x <= 3.05 ? ['best', ''] : ['ok', '스택이 얕을수록 3벳을 작게(2.5~3배) 가져갑니다.'];
       if (x >= 2.95 && x <= 3.05) return ['best', ''];
@@ -948,27 +1046,33 @@ function vsOpenEngine(sc) {
     return e.f.fold === 'best' && DEF.BB.BTN.call[h] === 0 && DEF.BB.BTN.r3[h] === 0 && (evJ0(e) < -1.5);
   }
   const evJ0 = e => e.evJ == null ? -9 : e.evJ;
-  return { zone, role, ipPost, group, O, RS, toCall, potNow, potAfter, evalHand, sizeGrade, trivial, h0, o0 };
+  return { zone, role, ipPost, group, O, RS, toCall, potNow, potAfter, evalHand, sizeGrade, trivial, h0, o0, pub, key };
 }
 
 function vsJamEngine(sc) {
   const hero = sc.players[sc.heroIdx], jammer = sc.players[sc.villIdx];
   const kj = jammer.k, J = wager(sc, jammer), eff = sc.eff, D = D_OF(sc);
   const h0 = hero.k === 0 ? 1 : hero.k === 1 ? 0.5 : 0, j0 = kj === 1 ? 0.5 : 0;
-  const PR = new Float32Array(169); for (let v = 0; v < 169; v++) PR[v] = pushTh(sc, kj, v) >= J - 1e-6 ? 1 : 0;
-  const finalPot = 2 * eff + D - h0 - j0 + Math.max(0, 0); // side pots ignored: only eff is contested
-  const risk = eff - h0, req = risk / finalPot;
-  const evs = HANDS.map(h => { const [e] = eqVs(h, PR); return { eq: e, ev: e * finalPot - risk }; });
-  function evalHand(h) {
-    const { ev, eq } = evs[h];
-    const f = V(null, null, null, null);
-    if (ev > 0.15) { f.call = 'best'; f.fold = 'bad'; }
-    else if (ev < -0.15) { f.fold = 'best'; f.call = 'bad'; }
-    else if (ev >= 0) { f.call = 'best'; f.fold = 'ok'; }
-    else { f.fold = 'best'; f.call = 'ok'; }
-    return { f, ev, eq };
+  const pub = isPub(sc), icm = ICM(sc), key = pub ? pubKey(sc) : null;
+  // jammer's range: Nash; pub loose/rebuy adds "any pair, any ace…"; a tight pub table shoves like a deeper stack (narrower)
+  const PR = new Float32Array(169);
+  for (let v = 0; v < 169; v++) {
+    if (pub && key === 'tight') PR[v] = pushTh(sc, kj, v) >= Math.min(25, J * 1.6) - 1e-6 ? 1 : 0;
+    else PR[v] = pushTh(sc, kj, v) >= J - 1e-6 || (pub && PUB_PUSH[key][v]) ? 1 : 0;
   }
-  return { PR, J, finalPot, risk, req, evalHand, sizeGrade: () => ['bad', ''], trivial: h => Math.abs(evs[h].ev) > 2.5, pushPct: rangePct(PR), behind: sc.players.filter(p => p.i > sc.heroIdx).length };
+  const finalPot = 2 * eff + D - h0 - j0; // side pots ignored: only eff is contested
+  const risk = eff - h0, reqChip = risk / finalPot;
+  const evs = HANDS.map(h => { const [e] = eqVs(h, PR); return { eq: e, ev: e * finalPot - risk, evAdj: (e - icm.call) * finalPot - risk }; });
+  function evalHand(h) {
+    const { ev, evAdj, eq } = evs[h];
+    const f = V(null, null, null, null);
+    if (evAdj > 0.15) { f.call = 'best'; f.fold = 'bad'; }
+    else if (evAdj < -0.15) { f.fold = 'best'; f.call = 'bad'; }
+    else if (evAdj >= 0) { f.call = 'best'; f.fold = 'ok'; }
+    else { f.fold = 'best'; f.call = 'ok'; }
+    return { f, ev, evAdj, eq };
+  }
+  return { PR, J, finalPot, risk, req: reqChip + icm.call, reqChip, icmCall: icm.call, pub, key, evalHand, sizeGrade: () => ['bad', ''], trivial: h => Math.abs(evs[h].evAdj) > 2.5, pushPct: rangePct(PR), behind: sc.players.filter(p => p.i > sc.heroIdx).length };
 }
 
 function vsLimpEngine(sc) {
@@ -981,22 +1085,29 @@ function vsLimpEngine(sc) {
   // postflop position vs the limpers: non-blinds always have it; BB has it only against a lone SB limper (not heads-up)
   const ipPost = role === 'IP' || (role === 'BB' && !HU && sc.limpers.every(i => sc.players[i].k === 1));
   const pk = role === 'BB' ? 1 : k;
+  const pub = isPub(sc), icm = ICM(sc), key = pub ? pubKey(sc) : null;
+  // iso size: 3BB (4BB out of position) + 1BB per limper; pubs call more, so one more BB (4/5BB + 1 per limper)
+  const target = pub ? (HU ? 5 : ipPost ? 4 + n : 5 + n) : HU ? 4 : ipPost ? 3 + n : 4 + n;
+  // pub: limpers and players behind call a shove with a fixed range; the limps are extra dead money
+  const PEV = pub && zone === 'short' ? HANDS.map(h => pushEVvs(h, Math.min(8, Math.max(1, k + n)), eff, D_OF(sc) + n, PUB_CALL[key])) : null;
   function evalHand(h) {
     const pth = pushTh(sc, pk, h);
     const f = V(role === 'BB' ? null : 'bad', 'bad', 'bad', 'bad');
     const prem = PREM_OPEN.has(h);
-    let overlimpOK = false;
+    let overlimpOK = false, pubNote = null;
     if (zone === 'short') {
-      const push = pth >= eff - 1.5, near = Math.abs(pth - (eff - 1.5)) <= 1;
+      let push = pth >= eff - 1.5, near = Math.abs(pth - (eff - 1.5)) <= 1;
+      if (PEV) { const thr = icm.push * eff; push = PEV[h] > thr; near = Math.abs(PEV[h] - thr) <= 0.3; }
       f.allin = push ? 'best' : (near ? 'ok' : 'bad');
       if (role === 'BB') f.call = push ? (near ? 'ok' : 'bad') : 'best';
       else f.fold = push ? (near ? 'ok' : 'bad') : 'best';
       if (prem) f.raise = 'ok';
-      return { f, pth, push, iso: isoW[h], own: ownW[h] };
+      return { f, pth, push, iso: isoW[h], own: ownW[h], pev: PEV ? PEV[h] : null };
     }
-    const iso = isoW[h];
-    overlimpOK = role === 'IP' && eff >= 25 && ownW[h] > 0 && (isSpec(h, 'T') || isSuitedWheelishAce(h));
-    const preferCheap = isSpec(h) && iso > 0 && eff >= 25 && (overlimpOK || role === 'BB'); // small pairs / suited connectors: see a cheap multiway flop
+    let iso = isoW[h];
+    if (pub && n >= 2 && iso > 0 && OFF_BROADWAY[h]) { iso = 0; pubNote = 'offbwLimp'; } // dominated multiway
+    overlimpOK = role === 'IP' && eff >= (pub ? 20 : 25) && ownW[h] > 0 && (isSpec(h, 'T') || isSuitedWheelishAce(h));
+    const preferCheap = isSpec(h) && iso > 0 && (role === 'BB' || (eff >= (pub ? 20 : 25) && overlimpOK)); // small pairs / suited connectors: see a cheap multiway flop
     if (preferCheap) { f.call = 'best'; f.raise = 'ok'; }
     else if (iso >= 1) { f.raise = 'best'; }
     else if (iso > 0) { f.raise = 'best'; if (role === 'BB') f.call = 'ok'; else if (overlimpOK || (role === 'SB' && ownW[h] > 0)) f.call = 'ok'; else f.fold = 'ok'; }
@@ -1005,15 +1116,23 @@ function vsLimpEngine(sc) {
     else if (role === 'SB' && ownW[h] > 0 && eff >= 20) { f.call = 'best'; f.fold = 'ok'; }
     else f.fold = 'best';
     if (eff <= 25 && pth >= eff && !prem) f.allin = f.raise === 'best' || f.call === 'best' ? 'ok' : (f.fold === 'best' ? 'bad' : 'ok');
-    return { f, pth, iso, own: ownW[h], overlimpOK };
+    if (pubNote && f.raise === 'bad') f.raise = 'ok';
+    // the iso size would put 40%+ of the stack in: strong hands just jam, borderline ones take the cheap/passive line
+    let commit = false;
+    if (f.raise === 'best' && target > 0.4 * eff) {
+      commit = true; f.raise = 'ok';
+      if (iso >= 1 || prem) f.allin = 'best';
+      else if (role === 'BB' || f.call === 'ok') f.call = 'best';
+      else f.fold = 'best';
+    }
+    return { f, pth, iso, own: ownW[h], overlimpOK, pubNote, commit };
   }
-  const target = HU ? 4 : ipPost ? 3 + n : 4 + n;
   function sizeGrade(amt) {
     const a = r1(amt);
     if (zone === 'short') return PREM_OPEN.has(sc._h) ? ['ok', '숏스택 프리미엄은 작은 아이소로 콜을 유도할 수도 있습니다.'] : ['bad', '15BB 이하에서 아이소 레이즈 후 올인을 맞으면 폴드할 수 없습니다. 올인이 낫습니다.'];
     if (a > 0.4 * eff) return ['bad', `${fbb(a)}는 유효 스택의 ${fpct(a / eff * 100)}입니다. 이 정도면 올인이 낫습니다.`];
     if (Math.abs(a - target) < 0.05) return ['best', ''];
-    if (Math.abs(a - target) <= 1.05) return ['ok', HU ? '헤즈업에서 BB가 림프에 레이즈할 때는 약 4BB가 표준입니다.' : `기본 공식은 ${ipPost ? '3BB' : '4BB(포지션 없음)'} + 림퍼당 1BB = ${fbb(target)}입니다.`];
+    if (Math.abs(a - target) <= 1.05) return ['ok', pub ? `홀덤펍 아이소 공식은 ${ipPost ? '4BB' : '5BB(포지션 없음)'} + 림퍼당 1BB = ${fbb(target)}입니다. 콜이 많아 크게 올려야 헤즈업이 됩니다.` : HU ? '헤즈업에서 BB가 림프에 레이즈할 때는 약 4BB가 표준입니다.' : `기본 공식은 ${ipPost ? '3BB' : '4BB(포지션 없음)'} + 림퍼당 1BB = ${fbb(target)}입니다.`];
     return a < target ? ['bad', `림퍼 ${n}명에게 ${fbb(a)}는 너무 작아 여러 명이 따라옵니다. ${fbb(target)} 정도가 적당합니다.`] : ['bad', `${fbb(a)}는 너무 큽니다. 약한 림퍼들은 폴드하고 강한 핸드만 남습니다.`];
   }
   function trivial(h) {
@@ -1021,7 +1140,7 @@ function vsLimpEngine(sc) {
     const e = evalHand(h);
     return (e.f.fold === 'best' || (role === 'BB' && e.f.call === 'best')) && RFI[2][h] === 0;
   }
-  return { zone, role, n, isoW, ownW, target, ipPost, HU, evalHand, sizeGrade, trivial };
+  return { zone, role, n, isoW, ownW, target, ipPost, HU, pub, key, evalHand, sizeGrade, trivial };
 }
 
 /* =====================================================================
@@ -1100,7 +1219,7 @@ function explain(sc, h) {
     out.kpis.push(['유효 스택', fbb(eff)], ['M', `${r1(M)} · ${hz.name}`], ['푸시 상한', e.pth >= 25 ? '25BB+' : fbb(e.pth)]);
     if (zone === 'A') {
       out.bullets.push(`유효 스택 ${fbb(eff)}는 <b>푸시/폴드 구간</b>입니다. 2BB로 오픈했다가 올인을 맞으면 팟 오즈 때문에 거의 콜해야 하므로, 처음부터 올인해 폴드 에퀴티를 최대한 쓰는 편이 낫습니다.`);
-      out.bullets.push(`내쉬 푸시 차트에서 ${seatNote(pos, k)}의 ${hn} 핸드는 ${thTxt}합니다. 현재 ${fbb(eff)}이므로 <b>${e.push ? '올인' : '폴드'}</b>${e.near ? ' (경계에 가까워 반대 선택도 손실이 작음)' : ''}.`);
+      out.bullets.push(`내쉬 푸시 차트에서 ${seatNote(pos, k)}의 ${hn} 핸드는 ${thTxt}합니다. 현재 ${fbb(eff)}이므로 <b>${e.pth >= eff - 1e-6 ? '올인' : '폴드'}</b>${eng.pub ? '(이론 기준이며, 홀덤펍 판단은 아래 참고)' : e.near ? ' (경계에 가까워 반대 선택도 손실이 작음)' : ''}.`);
       out.bullets.push(`뒤에 남은 사람이 많을수록 누군가 강한 핸드로 콜할 확률이 커지므로 푸시 레인지는 좁아집니다. 지금 자리의 ${fbb(eff)} 푸시 레인지는 약 <b>${fpct(rangePct(HANDS.map(x => pushTh(sc, k, x) >= eff ? 1 : 0)))}</b>입니다.`);
       out.refs.push('mop', 'kill');
     } else if (zone === 'B') {
@@ -1129,7 +1248,7 @@ function explain(sc, h) {
         : e.f.raise === 'ok' ? '오픈 레이즈도 수익이 나는 선택입니다.' : `${hn} 핸드는 이 자리 레인지 밖입니다. 뒤에 ${k}명이 남아 있어 더 강한 핸드에 3벳을 맞거나 포지션 없이 끌려가기 쉽습니다.`,
       allin: e.f.allin === 'ok' || e.f.allin === 'best' ? '푸시 레인지 안에 있어 오픈 올인도 수익이 납니다.' : (zone === 'A' || zone === 'B') ? `${hn}의 푸시 상한(${e.pth >= 25 ? '25BB+' : fbb(e.pth)})이 현재 스택보다 낮아, 뒤 ${k}명 중 누군가 콜할 때 에퀴티가 부족합니다.` : `유효 ${fbb(eff)}에서 오픈 올인은 위험 대비 보상이 나쁩니다. 더 약한 핸드는 모두 폴드하고 더 강한 핸드만 콜합니다. 2~2.5BB로 같은 폴드 효과를 얻을 수 있습니다.`,
     };
-    out.chart = zone === 'A' ? nashChart(sc, k, eff, h) : engineChart(sc, h, `${pos} 오픈 전략 · 유효 ${fbb(eff)}`);
+    out.chart = zone === 'A' && !eng.pub ? nashChart(sc, k, eff, h) : engineChart(sc, h, `${pos} ${zone === 'A' ? '푸시' : '오픈'} 전략 · 유효 ${fbb(eff)}`);
   }
 
   if (sc.type === 'vsOpen') {
@@ -1150,7 +1269,7 @@ function explain(sc, h) {
       if (role === 'IP') out.bullets.push('포지션이 있는 자리(IP)는 3벳과 콜을 섞습니다. 콜은 포스트플랍에서 잘 플레이되는 페어·수딧 브로드웨이·수딧 커넥터 위주로 구성합니다.');
       if (role === 'SB') out.bullets.push('SB는 포스트플랍 내내 포지션이 없고 BB가 뒤에 남아 스퀴즈 위험까지 있어 <b>3벳 아니면 폴드</b>가 기본입니다.');
       if (role === 'BB') out.bullets.push(`BB는 이미 1BB를 냈고 프리플랍 마지막에 행동하므로 가격이 가장 좋습니다. 콜 ${fbb(eng.toCall)}로 ${fbb(eng.potAfter)} 팟을 다투므로 필요 에퀴티는 <b>${fpct(req * 100)}</b>(실현율 감안 전)입니다.${eng.ipPost ? ' 상대가 SB이면 포스트플랍에서는 SB가 먼저 행동하므로 <b>BB가 포지션(IP)</b>을 가집니다.' : ''}`);
-      out.bullets.push(`3벳 레인지 = 밸류(상대 레인지를 압도하는 QQ+, AK 등) + 블러프(A5s~A2s처럼 A 블로커가 있고 플레이어빌리티가 좋은 핸드). 사이즈는 포지션이 있으면(IP) 오픈의 약 <b>3배</b>, 없으면(OOP) 약 <b>4배</b>이고, 지금은 <b>${eng.ipPost ? 'IP → 약 3배' : 'OOP → 약 4배'}</b>입니다.`);
+      out.bullets.push(`3벳 레인지 = 밸류(상대 레인지를 압도하는 QQ+, AK 등) + 블러프(A5s~A2s처럼 A 블로커가 있고 플레이어빌리티가 좋은 핸드). 사이즈는 포지션이 있으면(IP) 오픈의 약 <b>3배</b>, 없으면(OOP) 약 <b>4배</b>이고, 지금은 <b>${eng.pub ? '홀덤펍 → 밸류 3벳 약 4배' : eng.ipPost ? 'IP → 약 3배' : 'OOP → 약 4배'}</b>입니다.`);
       if (e.filtered) out.bullets.push(`스몰 페어·작은 수딧 커넥터의 콜은 임플라이드 오즈에 기대는데, 플랍 셋 확률은 약 11.8%(약 7.5:1)입니다. 남은 스택이 콜 금액의 15~20배 이상이어야 하는데 지금은 ${r1(eff / eng.toCall)}배라 폴드합니다.`);
       if (e.zone === 'trans' && eng.RS) { out.kpis.push(['올인 EV', fev(e.evJ)]); out.bullets.push(`유효 ${fbb(eff)}에서는 3벳 올인도 강력한 무기입니다. 이 핸드의 올인 EV ≈ <b>${fev(e.evJ)}</b>(상대 콜 레인지는 오픈의 약 ${fpct(eng.RS.callPctOfOpen)}).`); }
       out.refs.push('mpt', 'nltp');
@@ -1168,15 +1287,17 @@ function explain(sc, h) {
   if (sc.type === 'vsJam') {
     const jammer = sc.players[sc.villIdx];
     out.kpis.push(['내 에퀴티', fpct(e.eq * 100)], ['필요 에퀴티', fpct(eng.req * 100)], ['콜 EV', fev(e.ev)]);
-    out.bullets.push(`필요 에퀴티 = 콜 금액 / 최종 팟 = ${fbb(eng.risk)} / ${fbb(eng.finalPot)} = <b>${fpct(eng.req * 100)}</b>. 블라인드·앤티(데드 머니)가 있어 50%보다 낮습니다.`);
-    out.bullets.push(`${jammer.label}(뒤에 ${jammer.k}명, ${fbb(eng.J)})의 내쉬 푸시 레인지는 약 <b>${fpct(eng.pushPct)}</b>입니다. 이 레인지 상대로 ${hn}의 에퀴티는 <b>${fpct(e.eq * 100)}</b>입니다.`);
-    out.bullets.push(`콜 EV = ${fpct(e.eq * 100)} × ${fbb(eng.finalPot)} − ${fbb(eng.risk)} = <b>${fev(e.ev)}</b> → ${e.ev >= 0 ? '콜' : '폴드'}.`);
+    out.bullets.push(`필요 에퀴티 = 콜 금액 / 최종 팟 = ${fbb(eng.risk)} / ${fbb(eng.finalPot)} = <b>${fpct(eng.reqChip * 100)}</b>${eng.icmCall ? ` + 버블 ICM 여유 ${Math.round(eng.icmCall * 100)}%p = <b>${fpct(eng.req * 100)}</b>` : ''}. 블라인드·앤티(데드 머니)가 있어 50%보다 낮습니다.`);
+    out.bullets.push(eng.pub
+      ? `${jammer.label}(${fbb(eng.J)})의 푸시 레인지를 홀덤펍 성향으로 ${eng.key === 'tight' ? '이론보다 좁게(강한 핸드 위주)' : '아무 페어·아무 에이스까지 넓게'} 잡으면 약 <b>${fpct(eng.pushPct)}</b>입니다. 이 레인지 상대로 ${hn}의 에퀴티는 <b>${fpct(e.eq * 100)}</b>입니다.`
+      : `${jammer.label}(뒤에 ${jammer.k}명, ${fbb(eng.J)})의 내쉬 푸시 레인지는 약 <b>${fpct(eng.pushPct)}</b>입니다. 이 레인지 상대로 ${hn}의 에퀴티는 <b>${fpct(e.eq * 100)}</b>입니다.`);
+    out.bullets.push(`콜 EV = ${fpct(e.eq * 100)} × ${fbb(eng.finalPot)} − ${fbb(eng.risk)} = <b>${fev(e.ev)}</b>${eng.icmCall ? ` (ICM 여유 반영 시 ${fev(e.evAdj)})` : ''} → ${e.evAdj >= 0 ? '콜' : '폴드'}.`);
     if (eng.behind > 0) out.bullets.push(`아직 뒤에 ${eng.behind}명이 남아 있어 오버콜 위험이 있습니다. 경계 핸드는 조금 더 타이트하게 잡는 것이 안전합니다.`);
-    out.bullets.push('머니 버블·파이널 테이블처럼 ICM(상금 구조) 압력이 클 때는 chipEV보다 더 높은 에퀴티가 필요합니다.');
+    if (!eng.icmCall) out.bullets.push('머니 버블·파이널 테이블처럼 ICM(상금 구조) 압력이 클 때는 chipEV보다 더 높은 에퀴티가 필요합니다.');
     out.refs.push('mop', 'kill');
     out.why = {
-      fold: e.f.fold === 'ok' ? 'EV 차이가 ±0.15BB 이내인 경계 상황이라 폴드도 큰 실수가 아닙니다.' : `콜 EV ${fev(e.ev)}: 에퀴티 ${fpct(e.eq * 100)}가 필요 에퀴티 ${fpct(eng.req * 100)}보다 높아 폴드는 칩을 버리는 선택입니다.`,
-      call: e.f.call === 'ok' ? 'EV 차이가 ±0.15BB 이내인 경계 상황이라 콜도 큰 실수가 아닙니다.' : `콜 EV ${fev(e.ev)}: 에퀴티 ${fpct(e.eq * 100)}가 필요 에퀴티 ${fpct(eng.req * 100)}에 못 미칩니다.`,
+      fold: e.f.fold === 'ok' ? 'EV 차이가 ±0.15BB 이내인 경계 상황이라 폴드도 큰 실수가 아닙니다.' : `콜 EV ${fev(e.evAdj)}: 에퀴티 ${fpct(e.eq * 100)}가 필요 에퀴티 ${fpct(eng.req * 100)}보다 높아 폴드는 칩을 버리는 선택입니다.`,
+      call: e.f.call === 'ok' ? 'EV 차이가 ±0.15BB 이내인 경계 상황이라 콜도 큰 실수가 아닙니다.' : `콜 EV ${fev(e.evAdj)}: 에퀴티 ${fpct(e.eq * 100)}가 필요 에퀴티 ${fpct(eng.req * 100)}에 못 미칩니다.`,
     };
     out.chart = engineChart(sc, h, `${jammer.label} ${fbb(eng.J)} 올인에 대한 콜 레인지 (${pos})`);
   }
@@ -1187,10 +1308,12 @@ function explain(sc, h) {
     out.bullets.push(`${limpLabels}의 림프는 오픈 레이즈를 하지 않은 만큼 레인지가 약하고 상한이 있습니다(capped). 강한 핸드는 <b>아이솔레이션 레이즈</b>로 헤즈업과 주도권을 만듭니다.`);
     if (eng.zone === 'short') {
       out.bullets.push(`유효 ${fbb(eff)} 이하에서는 아이소 레이즈 후 올인을 맞으면 폴드할 수 없으므로 <b>올인 아니면 ${role === 'BB' ? '체크' : '폴드'}</b>입니다. 림퍼의 데드 머니가 있어 일반 푸시 레인지보다 조금 넓게 올인합니다.`);
-      out.bullets.push(`${hn}의 내쉬 푸시 상한은 ${e.pth >= 25 ? '25BB+' : fbb(e.pth)}입니다(데드 머니 보정 +1.5BB 적용).`);
+      out.bullets.push(e.pev != null
+        ? `림퍼와 뒤 플레이어가 ${PUB_CALL_KO[eng.key]}(약 ${fpct(rangePct(PUB_CALL[eng.key]))})로 콜한다고 보면 ${hn} 올인 EV = <b>${fev(e.pev)}</b>입니다(림프 데드 머니 포함).`
+        : `${hn}의 내쉬 푸시 상한은 ${e.pth >= 25 ? '25BB+' : fbb(e.pth)}입니다(데드 머니 보정 +1.5BB 적용).`);
       out.refs.push('kill');
     } else {
-      out.bullets.push(eng.HU ? '헤즈업에서 BB는 포스트플랍에 포지션이 없으므로, 버튼의 림프에 레이즈할 때 약 <b>4BB</b>로 올립니다.' : `아이소 사이즈 공식: <b>${eng.ipPost ? '3BB' : '4BB(포지션 없음 +1)'} + 림퍼당 1BB = ${fbb(eng.target)}</b>. 림퍼가 많을수록 팟이 커지므로 더 크게 올립니다.${role === 'BB' && eng.ipPost ? ' SB 혼자 림프했다면 BB는 포스트플랍에 포지션이 있으므로 3BB 기준을 씁니다.' : ''}`);
+      out.bullets.push(eng.pub ? `홀덤펍 아이소 사이즈: <b>${eng.HU ? '5BB' : `${eng.ipPost ? '4BB' : '5BB(포지션 없음)'} + 림퍼당 1BB = ${fbb(eng.target)}`}</b>. 펍 손님은 레이즈에도 잘 따라오므로 이론 공식(3BB + 림퍼당 1BB)보다 1BB 크게 올려야 헤즈업이 됩니다.` : eng.HU ? '헤즈업에서 BB는 포스트플랍에 포지션이 없으므로, 버튼의 림프에 레이즈할 때 약 <b>4BB</b>로 올립니다.' : `아이소 사이즈 공식: <b>${eng.ipPost ? '3BB' : '4BB(포지션 없음 +1)'} + 림퍼당 1BB = ${fbb(eng.target)}</b>. 림퍼가 많을수록 팟이 커지므로 더 크게 올립니다.${role === 'BB' && eng.ipPost ? ' SB 혼자 림프했다면 BB는 포스트플랍에 포지션이 있으므로 3BB 기준을 씁니다.' : ''}`);
       out.bullets.push(`아이소 레인지는 일반 오픈보다 조금 타이트합니다(약 ${fpct(rangePct(eng.isoW))}). ${hn} 핸드는 ${e.iso >= 1 ? '<b>아이소 레인지 안</b>' : e.iso > 0 ? '<b>경계 핸드</b>' : '<b>아이소 레인지 밖</b>'}입니다.`);
       if (role === 'BB') out.bullets.push('BB는 공짜로 플랍을 볼 수 있으므로 아이소 레인지 밖의 핸드는 체크합니다.');
       else if (e.overlimpOK || e.f.call === 'best') out.bullets.push('스몰 페어·수딧 커넥터·수딧 에이스는 멀티웨이 팟에서 싸게 플랍을 보는 오버림프가 좋습니다. 셋·플러시·스트레이트를 맞혔을 때 큰 팟을 이길 수 있기 때문입니다(임플라이드 오즈).');
@@ -1204,7 +1327,57 @@ function explain(sc, h) {
     };
     out.chart = engineChart(sc, h, `${pos} vs 림퍼 ${n}명 · 유효 ${fbb(eff)}`);
   }
+  if (e.commit) { // recommended raise size would commit the stack
+    const sz = sc.type === 'vsLimp' ? eng.target : e.idealSize;
+    out.bullets.push(`유효 ${fbb(eff)}에서는 권장 ${sc.type === 'vsLimp' ? '아이소' : '3벳'} 사이즈(${fbb(sz)})가 스택의 ${fpct(sz / eff * 100)}라 넣는 순간 사실상 커밋됩니다. 그래서 강한 핸드는 작은 레이즈 대신 <b>바로 올인</b>하고, 경계 핸드는 싸게 가거나 포기합니다.`);
+    out.why.raise = `레이즈 방향은 맞지만 권장 사이즈 ${fbb(sz)}가 스택의 ${fpct(sz / eff * 100)}입니다. 이 정도면 ${e.f.allin === 'best' ? '올인이 낫습니다' : '레이즈보다 싸게 가거나 포기하는 편이 낫습니다'}.`;
+  }
+  if (isPub(sc)) {
+    if (e.pev != null) { // short-stack shove graded against pub callers, not the Nash threshold
+      out.kpis.push(['펍 올인 EV', fev(e.pev)]);
+      out.why.allin = e.f.allin === 'bad' ? `홀덤펍 기준 올인 EV ${fev(e.pev)}: 상대가 넓게 콜해서 이 핸드의 올인은 손해입니다.` : `홀덤펍 기준 올인 EV ${fev(e.pev)}로 올인이 수익이 납니다.`;
+      if (e.f.fold === 'bad') out.why.fold = `홀덤펍 기준 올인 EV ${fev(e.pev)}: 폴드는 이 수익을 버리는 선택입니다.`;
+    }
+    out.bullets.push(...pubBullets(sc, eng, e, h));
+    if (e.pubNote) for (const fam of ['fold', 'call', 'raise', 'allin']) {
+      if (!e.f[fam] || e.f[fam] === 'best' || !out.why[fam]) continue;
+      out.why[fam] = PUB_WHY[e.pubNote] + (e.f[fam] === 'ok' ? ' 이론(균형) 기준으로는 맞는 선택이라 허용으로 처리합니다.' : ' ' + out.why[fam]);
+    }
+    if (sc.mode.stage === 'bubble') out.refs.push('kill');
+    out.chart.title += ' · 홀덤펍';
+  }
   out.refs = [...new Set(out.refs)];
+  return out;
+}
+
+/* ---- 홀덤펍 explanations ---- */
+const PUB_WHY = {
+  epOff: '홀덤펍 조정: 얼리 포지션의 약한 오프수트는 콜이 많은 멀티웨이 팟에서 도미네이트당하기 쉬워 뺍니다.',
+  steal: '홀덤펍 조정: 블라인드가 콜을 많이 해서 순수 스틸용 약한 핸드는 수익이 줄어듭니다.',
+  icm: '버블·시상권 조정: 경계 핸드는 탈락 위험을 피해 폴드합니다(ICM).',
+  bluff3: '홀덤펍 조정: 상대가 3벳에 잘 폴드하지 않아 블러프 3벳(A5s·수딧 커넥터 등)의 수익이 줄어듭니다. 3벳은 밸류 위주로 하세요.',
+  value3: '홀덤펍 조정: 콜이 많은 상대에게는 이 핸드를 밸류 3벳으로 크게 가져갑니다.',
+  offbw: '홀덤펍 조정: AJo·KQo 같은 오프수트 하이카드는 멀티웨이에서 도미네이트당하기 쉬워 앞자리 오픈에 콜하지 않습니다.',
+  offbwLimp: '홀덤펍 조정: 림퍼가 여럿이면 오프수트 하이카드로 아이소해도 여러 명이 따라와 도미네이트당하기 쉽습니다.',
+};
+function pubBullets(sc, eng, e, h) {
+  const key = pubKey(sc), icm = ICM(sc), hn = handName(h), eff = sc.eff, out = [];
+  const callTxt = `${PUB_CALL_KO[key]}(약 ${fpct(rangePct(PUB_CALL[key]))})`;
+  out.push(`<b>홀덤펍 모드</b>(${modeLabel(sc)}): 카드 확률은 같고, 상대 행동만 이론(균형) 대신 펍 성향으로 가정해 채점합니다.`);
+  if (e.pubNote) out.push(`이 핸드에 적용된 조정: ${PUB_WHY[e.pubNote]}`);
+  if (sc.type === 'rfi') {
+    if (e.pev != null) out.push(`상대가 올인에 ${callTxt}로 콜한다고 보면 ${hn} 푸시 EV = <b>${fev(e.pev)}</b>${icm.push ? ` (버블: ${fev(icm.push * eff)} 이상이어야 푸시)` : ''}. ${key === 'tight' ? '폴드가 많은 테이블에서는 폴드 에퀴티로 약한 핸드도 넓게 푸시하지만, 콜하는 사람은 강한 핸드만 들고 있어 A9o 같은 도미네이트당하기 쉬운 핸드는 오히려 손해일 수 있습니다' : '콜이 많은 테이블에서는 폴드 에퀴티가 줄어, 상대 콜 범위보다 앞서는 핸드(페어·좋은 에이스·브로드웨이) 위주로 푸시합니다'}. 이론 기준으로는 <b>${e.pth >= eff - 1e-6 ? '푸시' : '폴드'}</b>입니다.`);
+    if (eng.zone === 'C' || eng.zone === 'D') out.push(`홀덤펍 오픈: 얼리 포지션의 약한 오프수트는 빼고, 블라인드가 콜을 많이 하므로 순수 스틸용 약한 핸드도 줄입니다. 사이즈는 <b>${sc.players[sc.heroIdx].k === 1 && sc.N > 2 ? '3~4BB' : '2.5~3BB'}</b>로 조금 크게 엽니다.`);
+  } else if (sc.type === 'vsOpen') {
+    if (eng.zone === 'short') out.push(`상대는 올인을 맞으면 오픈 레인지 중 ${callTxt}에 드는 핸드로 콜한다고 가정합니다. 오픈 레인지의 약 ${fpct(eng.RS.callPctOfOpen)}가 콜하므로 블러프성 리스틸보다 강한 핸드로 올인하는 편이 낫습니다.`);
+    else out.push('홀덤펍 3벳: 블러프 3벳(A5s 등)은 줄이고 밸류 3벳은 오픈의 약 <b>4배</b>로 크게 합니다. AJo·KQo 같은 오프수트 하이카드는 앞자리 오픈에 콜하지 않고, 스몰 페어·수딧 커넥터는 멀티웨이 임플라이드 오즈 덕분에 유효 30BB 이상이면 콜합니다. 상대가 3벳하면 강한 핸드일 가능성이 높으니 존중하세요.');
+  } else if (sc.type === 'vsJam') {
+    out.push(key === 'tight' ? '폴드가 많은 테이블에서 올인하는 사람은 강한 핸드인 경우가 많아 콜을 좁힙니다.' : '홀덤펍에서는 아무 에이스·아무 페어로 올인하는 사람이 많아, 이론(내쉬)보다 넓게 콜해도 됩니다.');
+  } else if (sc.type === 'vsLimp') {
+    out.push('홀덤펍은 림프가 많습니다. 강한 핸드는 크게 아이소하고, 스몰 페어·수딧 커넥터는 싸게 따라가 셋·플러시·스트레이트로 여러 명에게 받아냅니다.');
+  }
+  if (icm.call) out.push(`버블·시상권(ICM 근사): 올인 콜은 필요 에퀴티 +${Math.round(icm.call * 100)}%p, 푸시는 EV가 유효 스택의 ${Math.round(icm.push * 100)}% 이상일 때만 하고, 경계 핸드는 폴드합니다. 상금·시드권이 걸린 구간에서는 칩보다 살아남는 것이 중요합니다.`);
+  if (sc.mode.stage === 'rebuy') out.push('리바이 구간: 탈락 부담이 적어 다들 넓게 콜·푸시합니다(상대 성향을 한 단계 루즈하게 가정). 판단은 chipEV 그대로입니다.');
   return out;
 }
 
@@ -1244,7 +1417,7 @@ function nashChart(sc, k, eff, h) {
    ===================================================================== */
 const STORE_KEY = 'pfdrill.v1';
 const S = {
-  settings: { players: 'rand', depth: 'rand', ante: 'bb', bias: 'balanced', types: { rfi: true, vsOpen: true, vsJam: true, vsLimp: true } },
+  settings: { players: 'rand', depth: 'rand', ante: 'bb', bias: 'balanced', types: { rfi: true, vsOpen: true, vsJam: true, vsLimp: true }, mode: 'theory', pubTable: 'loose', pubStage: 'normal' },
   stats: { played: 0, best: 0, ok: 0, bad: 0, streak: 0, bestStreak: 0, byType: {} },
   history: [],
   sc: null, answered: null,
@@ -1435,7 +1608,7 @@ function renderPanel() {
   const sc = S.sc, p = $('panel'), ans = S.answered;
   if (!ans) {
     p.innerHTML = `<h2>스택 & 상황</h2>${factsHTML(sc)}
-      <p class="hint">${TYPE_KO[sc.type]} · ${sc.N}명 테이블 · 스택은 블라인드·베팅을 뺀 남은 칩 기준으로 좌석에 표시됩니다(유효 스택은 이미 낸 블라인드 포함).</p>
+      <p class="hint"><b>${modeLabel(sc)}</b> · ${TYPE_KO[sc.type]} · ${sc.N}명 테이블 · 스택은 블라인드·베팅을 뺀 남은 칩 기준으로 좌석에 표시됩니다(유효 스택은 이미 낸 블라인드 포함).</p>
       <p class="hint">결정을 내리면 전략서 이론과 레인지 차트, EV 계산으로 해설합니다.</p>`;
     return;
   }
@@ -1497,7 +1670,7 @@ function answer(id) {
   const bt = st.byType[sc.type] || (st.byType[sc.type] = { p: 0, best: 0, ok: 0, bad: 0 }); bt.p++; bt[g.v]++;
   const opt = sc.options.find(o => o.id === id), optLabel = o => o.fam === 'allin' ? `올인 ${fbb(o.amount)}` : o.label;
   const bestOpts = sc.options.filter(o => grades[o.id].v === 'best');
-  S.history.unshift({ n: st.played, type: sc.type, N: sc.N, pos: sc.players[sc.heroIdx].label, hand: handName(h), eff: r1(sc.eff), mine: optLabel(opt), rec: (bestOpts.length ? bestOpts : sc.options.filter(o => grades[o.id].v === 'ok')).map(optLabel).join(' / '), v: g.v });
+  S.history.unshift({ n: st.played, type: sc.type, N: sc.N, pub: isPub(sc), pos: sc.players[sc.heroIdx].label, hand: handName(h), eff: r1(sc.eff), mine: optLabel(opt), rec: (bestOpts.length ? bestOpts : sc.options.filter(o => grades[o.id].v === 'ok')).map(optLabel).join(' / '), v: g.v });
   S.history = S.history.slice(0, 40);
   save();
   renderScores(); renderActions(); renderQuick(); renderPanel(); renderHistory();
@@ -1505,7 +1678,7 @@ function answer(id) {
 
 function renderHistory() {
   const tb = $('histTable').querySelector('tbody');
-  tb.innerHTML = S.history.map(r => `<tr><td class="n">${r.n}</td><td>${TYPE_KO[r.type]} · ${r.N}명</td><td>${esc(r.pos)}</td><td class="n">${esc(r.hand)}</td><td class="n">${r.eff}BB</td><td><span class="vdot ${r.v}"></span>${esc(r.mine)}</td><td>${esc(r.rec)}</td></tr>`).join('');
+  tb.innerHTML = S.history.map(r => `<tr><td class="n">${r.n}</td><td>${TYPE_KO[r.type]} · ${r.N}명${r.pub ? ' · 펍' : ''}</td><td>${esc(r.pos)}</td><td class="n">${esc(r.hand)}</td><td class="n">${r.eff}BB</td><td><span class="vdot ${r.v}"></span>${esc(r.mine)}</td><td>${esc(r.rec)}</td></tr>`).join('');
   $('histEmpty').hidden = S.history.length > 0;
   $('byType').innerHTML = Object.keys(TYPE_KO).map(t => {
     const b = S.stats.byType[t] || { p: 0, best: 0, ok: 0, bad: 0 };
@@ -1680,6 +1853,13 @@ function bindControls() {
   const st = S.settings;
   const sel = (id, key) => { const el = $(id); el.value = st[key]; el.addEventListener('change', () => { st[key] = el.value; save(); newHand(); }); };
   sel('optPlayers', 'players'); sel('optDepth', 'depth'); sel('optAnte', 'ante'); sel('optBias', 'bias');
+  sel('optMode', 'mode'); sel('optPubTable', 'pubTable'); sel('optPubStage', 'pubStage');
+  const syncMode = () => { // pub-only settings and the title pill follow the mode
+    const pub = st.mode === 'pub';
+    document.querySelectorAll('.pub-only').forEach(n => { n.hidden = !pub; });
+    $('modePill').hidden = !pub;
+  };
+  $('optMode').addEventListener('change', syncMode); syncMode();
   document.querySelectorAll('#typeToggles .tog').forEach(b => {
     b.setAttribute('aria-pressed', st.types[b.dataset.t] ? 'true' : 'false');
     b.addEventListener('click', () => {
