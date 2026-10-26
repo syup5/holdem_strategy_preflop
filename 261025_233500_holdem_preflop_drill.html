@@ -283,6 +283,12 @@ table.hist{width:100%;border-collapse:collapse;font-size:.84rem;min-width:560px}
 .qbtn.wrong{border:2px solid var(--bad);background:var(--bad-soft)}
 .quiz-fb{font-size:.92rem}
 .quiz-next{justify-self:start;border:none;border-radius:8px;padding:8px 14px;background:var(--ink);color:var(--panel);font-weight:700}
+.quiz .hint{margin:0}
+.quiz-big{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px}
+.quiz-ctrl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px}
+.qhide{display:inline-flex;align-items:center;gap:6px;font-size:.84rem;color:var(--muted);cursor:pointer}
+.ref{transition:filter .2s}
+.box.hiding .ref{filter:blur(9px);pointer-events:none;user-select:none}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 @media (max-width:640px){
   .plate{padding:3px 3px 4px;border-radius:8px}
@@ -396,20 +402,21 @@ table.hist{width:100%;border-collapse:collapse;font-size:.84rem;min-width:560px}
 
   <section class="appendix" id="appendix" aria-labelledby="apxTitle">
     <div class="apx-head"><h2 id="apxTitle">부록</h2><span>외워 두면 실전 판단이 빨라지는 기준표</span></div>
-    <div class="box">
+    <div class="box" id="boxA">
       <h3>A. 포지션별 오픈 레인지 (첫 진입)</h3>
       <p class="hint">앞사람이 모두 폴드했을 때 여는 레인지입니다. 오픈 열은 100BB 기준 근사 차트이고(가중 = 코어 + 경계 핸드의 절반), 푸시 열은 BB 앤티 구조의 chipEV 내쉬 푸시 범위입니다. 뒤에 남은 인원이 같으면 같은 레인지를 씁니다(예: 6인 UTG = 9인 LJ). 자리 이름을 누르면 차트가 열립니다.</p>
-      <div class="hist-scroll"><table class="ptable" id="posTable"></table></div>
-      <div class="pos-detail" id="posDetail"></div>
+      <div class="hist-scroll ref"><table class="ptable" id="posTable"></table></div>
+      <div class="pos-detail ref" id="posDetail"></div>
+      <div class="quiz" id="quizA" aria-live="polite"></div>
     </div>
-    <div class="box">
+    <div class="box" id="boxB">
       <h3>B. 핸드 퍼센트 암기표</h3>
       <p class="hint">169개 시작 핸드를 랜덤 핸드 상대 올인 에퀴티로 줄 세운 순위입니다. 셀의 숫자는 그 핸드까지 포함한 누적 비율 "상위 X%"입니다. 레인지 크기를 가늠하는 기준이지만, 실제 오픈 차트는 포지션과 플레이어빌리티 때문에 수딧·커넥터가 더 많이 들어갑니다.</p>
-      <div class="apx-grid">
+      <div class="apx-grid ref">
         <div class="chart"><div class="grid13" id="pctGrid" role="img" aria-label="핸드별 상위 퍼센트 히트맵"></div><div class="legend" id="pctLegend"></div></div>
         <div class="hist-scroll"><table class="toptable" id="topTable"></table></div>
       </div>
-      <div class="quiz" id="quiz" aria-live="polite"></div>
+      <div class="quiz" id="quizB" aria-live="polite"></div>
     </div>
   </section>
 </div>
@@ -1178,8 +1185,8 @@ const S = {
   history: [],
   sc: null, answered: null,
 };
-function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify({ settings: S.settings, stats: S.stats, history: S.history.slice(0, 40), quiz: S.quiz })); } catch (e) { /* storage unavailable */ } }
-function load() { try { const d = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); if (d) { Object.assign(S.settings, d.settings || {}); Object.assign(S.stats, d.stats || {}); S.history = d.history || []; if (d.quiz) S.quiz = d.quiz; } } catch (e) { /* ignore */ } }
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify({ settings: S.settings, stats: S.stats, history: S.history.slice(0, 40), quizA: S.quizA, quizB: S.quizB })); } catch (e) { /* storage unavailable */ } }
+function load() { try { const d = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); if (d) { Object.assign(S.settings, d.settings || {}); Object.assign(S.stats, d.stats || {}); S.history = d.history || []; if (d.quizA) S.quizA = d.quizA; if (d.quizB || d.quiz) S.quizB = d.quizB || d.quiz; } } catch (e) { /* ignore */ } }
 
 const $ = id => document.getElementById(id);
 
@@ -1430,7 +1437,7 @@ const PCT_BUCKETS = [[5, '상위 5%'], [10, '5–10%'], [20, '10–20%'], [35, '
 const POS_BUCKETS = [[15, '15% 이하'], [20, '15–20%'], [25, '20–25%'], [30, '25–30%'], [40, '30–40%'], [60, '40–60%'], [100, '60% 이상']];
 const bucketIdx = (buckets, v) => buckets.findIndex(([hi]) => v <= hi + 1e-9);
 const fp = p => (p < 10 ? p.toFixed(1) : String(Math.round(p)));
-S.quiz = { n: 0, ok: 0 };
+S.quizA = { n: 0, ok: 0 }; S.quizB = { n: 0, ok: 0 };
 
 function rangeToString(inSet) { // compress a set of hand classes into standard notation (77+, A9s+, KTs-K8s …)
   const parts = [];
@@ -1456,7 +1463,7 @@ const ROW_STATS = POS_ROWS.map(r => {
   const w = rowChart(r);
   return { w: rangePct(w), core: rangePct(w.map(x => (x >= 1 ? 1 : 0))), all: rangePct(w.map(x => (x > 0 ? 1 : 0))), p10: pushPctAt(r.k, 10), p15: pushPctAt(r.k, 15), p20: pushPctAt(r.k, 20) };
 });
-let apxSel = 'k3';
+let apxSel = 'k3', apxMe = null; // selected seat row, hand highlighted in its chart
 
 function renderPosTable() {
   const max = Math.max(...ROW_STATS.map(s => s.w));
@@ -1469,7 +1476,7 @@ function renderPosTable() {
 }
 function renderPosDetail() {
   const r = POS_ROWS.find(x => x.id === apxSel), w = rowChart(r), src = rowSrc(r), s = ROW_STATS[POS_ROWS.indexOf(r)];
-  const cells = HANDS.map(h => `<div class="cell ${w[h] >= 1 ? 'raise' : w[h] > 0 ? 'raise-mix' : 'fold'}" title="${handName(h)} · 상위 ${fpct(HAND_PCT[h])}">${handName(h)}</div>`).join('');
+  const cells = HANDS.map(h => `<div class="cell ${w[h] >= 1 ? 'raise' : w[h] > 0 ? 'raise-mix' : 'fold'}${h === apxMe ? ' me' : ''}" title="${handName(h)} · 상위 ${fpct(HAND_PCT[h])}">${handName(h)}</div>`).join('');
   const label = r.hu ? '헤즈업 BTN/SB' : `${r.name}${r.six !== '–' ? ` (6인 ${r.six})` : ''}`;
   $('posDetail').innerHTML = `<div class="chart"><div class="chart-title">${label} 오픈 차트 · 딥스택</div>
       <div class="grid13" role="img" aria-label="${label} 오픈 레인지 차트">${cells}</div>
@@ -1492,55 +1499,90 @@ function renderTopTable() {
   $('topTable').innerHTML = `<thead><tr><th>구간</th><th>포함되는 핸드</th><th style="text-align:right">콤보</th></tr></thead><tbody>${rows}</tbody>`;
 }
 
-const QZ = { cur: null, pick: null };
-function newQuiz() {
-  if (Math.random() < 0.7) {
-    const pool = Math.random() < 0.75 ? HANDS.filter(h => HAND_PCT[h] <= 65) : HANDS;
-    QZ.cur = { type: 'hand', h: pick(pool) };
-  } else QZ.cur = { type: 'pos', i: rint(0, POS_ROWS.length - 1) };
-  QZ.pick = null; renderQuiz();
+/* ---- memorization games: A = open ranges by position, B = hand percentiles ---- */
+const QUIZ = {
+  A: { box: 'boxA', el: 'quizA', key: 'quizA', name: '오픈 레인지 암기 게임', desc: '자리별로 어떤 핸드를 여는지, 레인지가 몇 %인지 맞혀 보세요. 답하면 위 표에서 그 자리의 차트가 열립니다.', hideLabel: '푸는 동안 위 표·차트 가리기', active: false, hide: true, q: null, pick: null },
+  B: { box: 'boxB', el: 'quizB', key: 'quizB', name: '핸드 퍼센트 암기 게임', desc: '핸드가 랜덤 핸드 상대 순위로 상위 몇 %인지 맞혀 보세요. 답하면 히트맵에 그 핸드가 표시됩니다.', hideLabel: '푸는 동안 히트맵·표 가리기', active: false, hide: true, q: null, pick: null },
+};
+const posLabel = r => (r.hu ? '헤즈업 BTN/SB' : `${r.name} (뒤에 ${r.k}명${r.six !== '–' ? ` · 6인 ${r.six}` : ''})`);
+
+function genQuizA() {
+  const r = pick(POS_ROWS), w = rowChart(r), s = ROW_STATS[POS_ROWS.indexOf(r)];
+  if (Math.random() < 0.65) { // is this hand an open from this seat?
+    // draw the answer first (open / borderline / fold) so the three answers stay balanced; folds come from plausible hands
+    const cats = [HANDS.filter(h => w[h] >= 1), HANDS.filter(h => w[h] > 0 && w[h] < 1), HANDS.filter(h => !w[h] && HAND_PCT[h] <= 75)];
+    if (!cats[2].length) cats[2] = HANDS.filter(h => !w[h]);
+    const roll = Math.random(); let c = roll < 0.42 ? 0 : roll < 0.65 ? 1 : 2; if (!cats[c].length) c = 0;
+    const h = pick(cats[c]), idx = w[h] >= 1 ? 0 : w[h] > 0 ? 1 : 2, ans = ['오픈', '경계(혼합)', '폴드'];
+    return {
+      big: handName(h), sub: posLabel(r), text: `앞사람이 모두 폴드했을 때 이 자리에서 ${handName(h)} 핸드를 오픈할까요?`,
+      options: ans, idx, accept: i => i === idx,
+      detail: () => `${posLabel(r)}의 ${handName(h)} → <b>${ans[idx]}</b> · 이 자리 오픈 약 ${fpct(s.w)} · 핸드 순위 상위 ${fpct(HAND_PCT[h])}`,
+      reveal: () => { apxSel = r.id; apxMe = h; renderPosTable(); },
+    };
+  }
+  const t = { v: s.w, buckets: POS_BUCKETS, idx: bucketIdx(POS_BUCKETS, s.w) };
+  return {
+    big: r.hu ? '헤즈업 BTN/SB' : r.name, sub: posLabel(r), text: '이 자리의 딥스택 오픈 레인지는 약 몇 %일까요?',
+    options: POS_BUCKETS.map(b => b[1]), idx: t.idx, accept: i => quizAccept(t, i), near: i => i !== t.idx && quizAccept(t, i),
+    detail: () => `가중 <b>${fpct(s.w)}</b> (코어 ${fpct(s.core)}, 경계 포함 ${fpct(s.all)})`,
+    reveal: () => { apxSel = r.id; apxMe = null; renderPosTable(); },
+  };
 }
-function quizTruth() {
-  const c = QZ.cur;
-  if (c.type === 'hand') return { v: HAND_PCT[c.h], buckets: PCT_BUCKETS, idx: bucketIdx(PCT_BUCKETS, HAND_PCT[c.h]) };
-  const v = ROW_STATS[c.i].w; return { v, buckets: POS_BUCKETS, idx: bucketIdx(POS_BUCKETS, v) };
+function genQuizB() {
+  const pool = Math.random() < 0.75 ? HANDS.filter(h => HAND_PCT[h] <= 65) : HANDS;
+  const h = pick(pool), v = HAND_PCT[h], t = { v, buckets: PCT_BUCKETS, idx: bucketIdx(PCT_BUCKETS, v) };
+  return {
+    big: handName(h), sub: { pair: '포켓 페어', suited: '수딧', offsuit: '오프수트' }[handKind(h)], text: '랜덤 핸드 상대 순위로 상위 몇 % 안에 들까요?',
+    options: PCT_BUCKETS.map(b => b[1]), idx: t.idx, accept: i => quizAccept(t, i), near: i => i !== t.idx && quizAccept(t, i),
+    detail: () => `${handName(h)} 핸드는 <b>상위 ${fpct(v)}</b> (169개 중 ${HAND_RANK[h]}위, 랜덤 핸드 상대 에퀴티 ${fpct(EQ_RAND[h] * 100)})`,
+    reveal: () => renderHandPct(h),
+  };
 }
+const QUIZ_GEN = { A: genQuizA, B: genQuizB };
+const QUIZ_CLEAR = { A: () => { apxMe = null; renderPosDetail(); }, B: () => renderHandPct(null) };
 function quizAccept(t, i) { // the true bucket, or a neighbouring bucket when the value sits within 1.5%p of its edge
   if (i === t.idx) return true;
   const lo = i === 0 ? 0 : t.buckets[i - 1][0], hi = t.buckets[i][0];
   return t.v >= lo - 1.5 && t.v <= hi + 1.5;
 }
-function renderQuiz() {
-  if (!QZ.cur) return;
-  const c = QZ.cur, t = quizTruth(), q = S.quiz, answered = QZ.pick != null;
-  let head;
-  if (c.type === 'hand') head = `<div class="quiz-hand">${handName(c.h)}</div><div class="quiz-q">랜덤 핸드 상대 순위로 상위 몇 % 안에 들까요?</div>`;
-  else {
-    const r = POS_ROWS[c.i];
-    head = `<div class="quiz-hand">${r.hu ? '헤즈업 BTN/SB' : r.name}</div><div class="quiz-q">${r.hu ? '헤즈업 버튼' : `${r.name}(뒤에 ${r.k}명${r.six !== '–' ? ` · 6인 ${r.six}` : ''})`}의 딥스택 오픈 레인지는 약 몇 %일까요?</div>`;
-  }
-  const opts = t.buckets.map(([, lab], i) => {
-    let cls = '';
-    if (answered) cls = i === t.idx || (i === QZ.pick && quizAccept(t, i)) ? 'right' : i === QZ.pick ? 'wrong' : '';
-    return `<button type="button" class="qbtn ${cls}" data-i="${i}"${answered ? ' disabled' : ''}>${lab}</button>`;
-  }).join('');
-  let fb = '';
-  if (answered) {
-    const ok = quizAccept(t, QZ.pick);
-    const detail = c.type === 'hand'
-      ? `${handName(c.h)} 핸드는 <b>상위 ${fpct(t.v)}</b> (169개 중 ${HAND_RANK[c.h]}위, 랜덤 핸드 상대 에퀴티 ${fpct(EQ_RAND[c.h] * 100)})`
-      : `가중 <b>${fpct(t.v)}</b> (코어 ${fpct(ROW_STATS[c.i].core)}, 경계 포함 ${fpct(ROW_STATS[c.i].all)})`;
-    fb = `<div class="quiz-fb">${ok ? '<b style="color:var(--best)">정답</b>' : '<b style="color:var(--bad)">오답</b>'} · ${detail}${ok && QZ.pick !== t.idx ? ' · 경계값이라 인접 구간도 정답 처리' : ''}</div><button type="button" class="quiz-next" id="quizNext">다음 문제</button>`;
-  }
-  $('quiz').innerHTML = `<div class="quiz-top"><b>암기 퀴즈</b><span class="hint">${q.n}문제 · 정답 ${q.ok} (${q.n ? Math.round(q.ok / q.n * 100) : 0}%)</span></div>${head}<div class="quiz-opts">${opts}</div>${fb}`;
-  $('quiz').querySelectorAll('.qbtn').forEach(b => b.addEventListener('click', () => {
-    if (QZ.pick != null) return;
-    QZ.pick = +b.dataset.i; S.quiz.n++; if (quizAccept(quizTruth(), QZ.pick)) S.quiz.ok++;
-    save(); renderQuiz(); if (QZ.cur.type === 'hand') renderHandPct(QZ.cur.h);
-  }));
-  if (answered) $('quizNext').addEventListener('click', () => { newQuiz(); renderHandPct(null); });
+function quizHiding(id) { // blur the reference tables while a question is open, so it is real recall
+  const Q = QUIZ[id], on = Q.active && Q.hide && Q.pick == null, box = $(Q.box);
+  box.classList.toggle('hiding', on);
+  box.querySelectorAll('.ref').forEach(n => n.setAttribute('aria-hidden', on ? 'true' : 'false'));
 }
-function renderAppendix() { renderPosTable(); renderHandPct(null); renderTopTable(); newQuiz(); }
+function nextQuiz(id) { const Q = QUIZ[id]; QUIZ_CLEAR[id](); Q.q = QUIZ_GEN[id](); Q.pick = null; renderQuiz(id); }
+function renderQuiz(id) {
+  const Q = QUIZ[id], tally = S[Q.key], el = $(Q.el);
+  const score = `${tally.n}문제 · 정답 ${tally.ok} (${tally.n ? Math.round(tally.ok / tally.n * 100) : 0}%)`;
+  const hideCtl = `<label class="qhide" for="${Q.el}Hide"><input type="checkbox" id="${Q.el}Hide"${Q.hide ? ' checked' : ''}> ${Q.hideLabel}</label>`;
+  if (!Q.active) {
+    el.innerHTML = `<div class="quiz-top"><b>${Q.name}</b><span class="hint">${score}</span></div><p class="hint">${Q.desc}</p>
+      <div class="quiz-ctrl"><button type="button" class="quiz-next" id="${Q.el}Start">게임 시작</button>${hideCtl}</div>`;
+    $(`${Q.el}Start`).addEventListener('click', () => { Q.active = true; nextQuiz(id); });
+  } else {
+    const q = Q.q, answered = Q.pick != null;
+    const opts = q.options.map((lab, i) => {
+      const cls = !answered ? '' : i === q.idx || (i === Q.pick && q.accept(i)) ? 'right' : i === Q.pick ? 'wrong' : '';
+      return `<button type="button" class="qbtn ${cls}" data-i="${i}"${answered ? ' disabled' : ''}>${lab}</button>`;
+    }).join('');
+    const fb = answered ? `<div class="quiz-fb">${q.accept(Q.pick) ? '<b style="color:var(--best)">정답</b>' : '<b style="color:var(--bad)">오답</b>'} · ${q.detail()}${q.near && q.near(Q.pick) ? ' · 경계값이라 인접 구간도 정답 처리' : ''}</div>` : '';
+    el.innerHTML = `<div class="quiz-top"><b>${Q.name}</b><span class="hint">${score}</span></div>
+      <div class="quiz-big"><span class="quiz-hand">${q.big}</span><span class="hint">${q.sub}</span></div>
+      <div class="quiz-q">${q.text}</div><div class="quiz-opts">${opts}</div>${fb}
+      <div class="quiz-ctrl">${answered ? `<button type="button" class="quiz-next" id="${Q.el}Next">다음 문제</button>` : ''}<button type="button" class="linkbtn" id="${Q.el}Stop">그만하기</button>${hideCtl}</div>`;
+    el.querySelectorAll('.qbtn').forEach(b => b.addEventListener('click', () => {
+      if (Q.pick != null) return;
+      Q.pick = +b.dataset.i; tally.n++; if (q.accept(Q.pick)) tally.ok++;
+      save(); renderQuiz(id); q.reveal();
+    }));
+    if (answered) $(`${Q.el}Next`).addEventListener('click', () => nextQuiz(id));
+    $(`${Q.el}Stop`).addEventListener('click', () => { Q.active = false; Q.q = null; Q.pick = null; QUIZ_CLEAR[id](); renderQuiz(id); });
+  }
+  $(`${Q.el}Hide`).addEventListener('change', e => { Q.hide = e.target.checked; quizHiding(id); });
+  quizHiding(id);
+}
+function renderAppendix() { renderPosTable(); renderHandPct(null); renderTopTable(); renderQuiz('A'); renderQuiz('B'); }
 
 function renderRefList() {
   $('refList').innerHTML = Object.values(REFS).map(r => `<li>${r.t} — ${r.n}. <a href="${r.u}" target="_blank" rel="noopener">링크</a>${r.u2 ? ` · <a href="${r.u2}" target="_blank" rel="noopener">M-비율</a>` : ''}</li>`).join('');
@@ -1562,7 +1604,7 @@ function bindControls() {
   let armed = false;
   $('btnReset').addEventListener('click', () => {
     if (!armed) { armed = true; $('btnReset').textContent = '정말 초기화할까요? 다시 누르면 삭제'; $('resetHint').textContent = ''; setTimeout(() => { armed = false; $('btnReset').textContent = '통계 초기화'; }, 4000); return; }
-    S.stats = { played: 0, best: 0, ok: 0, bad: 0, streak: 0, bestStreak: 0, byType: {} }; S.history = []; S.quiz = { n: 0, ok: 0 }; save(); renderQuiz();
+    S.stats = { played: 0, best: 0, ok: 0, bad: 0, streak: 0, bestStreak: 0, byType: {} }; S.history = []; S.quizA = { n: 0, ok: 0 }; S.quizB = { n: 0, ok: 0 }; save(); renderQuiz('A'); renderQuiz('B');
     armed = false; $('btnReset').textContent = '통계 초기화'; $('resetHint').textContent = '초기화했습니다.';
     renderScores(); renderHistory();
   });
