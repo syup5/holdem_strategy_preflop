@@ -287,6 +287,8 @@ table.hist{width:100%;border-collapse:collapse;font-size:.84rem;min-width:560px}
 .quiz-big{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px}
 .quiz-ctrl{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px}
 .qhide{display:inline-flex;align-items:center;gap:6px;font-size:.84rem;color:var(--muted);cursor:pointer}
+.quiz-cfg{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding-bottom:10px;border-bottom:1px dashed var(--line)}
+.quiz-chart{max-width:430px}
 .ref{transition:filter .2s}
 .box.hiding .ref{filter:blur(9px);pointer-events:none;user-select:none}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -1434,7 +1436,7 @@ const S = {
   history: [],
   sc: null, answered: null,
 };
-function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify({ settings: S.settings, stats: S.stats, history: S.history.slice(0, 40), quizA: S.quizA, quizB: S.quizB })); } catch (e) { /* storage unavailable */ } }
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify({ settings: S.settings, stats: S.stats, history: S.history.slice(0, 40), quizA: S.quizA, quizB: S.quizB, quizACfg: S.quizACfg })); } catch (e) { /* storage unavailable */ } }
 function load() {
   try {
     const d = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
@@ -1447,6 +1449,7 @@ function load() {
     }
     Object.assign(S.stats, d.stats || {}); S.history = d.history || [];
     if (d.quizA) S.quizA = d.quizA; if (d.quizB || d.quiz) S.quizB = d.quizB || d.quiz;
+    if (d.quizACfg) { const def = QA_DEFAULT(); S.quizACfg = Object.assign(def, d.quizACfg, { types: Object.assign(def.types, d.quizACfg.types || {}) }); }
   } catch (e) { /* ignore */ }
 }
 
@@ -1787,33 +1790,119 @@ function renderTopTable() {
 
 /* ---- memorization games: A = open ranges by position, B = hand percentiles ---- */
 const QUIZ = {
-  A: { box: 'boxA', el: 'quizA', key: 'quizA', name: '오픈 레인지 암기 게임', desc: '자리별로 어떤 핸드를 여는지, 레인지가 몇 %인지 맞혀 보세요. 답하면 위 표에서 그 자리의 차트가 열립니다.', hideLabel: '푸는 동안 위 표·차트 가리기', active: false, hide: true, q: null, pick: null },
+  A: { box: 'boxA', el: 'quizA', key: 'quizA', name: '오픈 레인지 암기 게임', desc: 'A1은 인원·포지션이 주어지면 오픈 레인지 %를, A2는 핸드까지 주어지면 오픈할지(또는 앞의 오픈에 폴드·콜·3벳할지)를 맞힙니다. 인원과 포지션은 랜덤으로 두거나 고정할 수 있습니다. 모두 딥스택(100BB) 이론 차트 기준입니다.', hideLabel: '푸는 동안 위 표·차트 가리기', active: false, hide: true, q: null, pick: null },
   B: { box: 'boxB', el: 'quizB', key: 'quizB', name: '핸드 퍼센트 암기 게임', desc: '핸드가 랜덤 핸드 상대 순위로 상위 몇 %인지 맞혀 보세요. 답하면 히트맵에 그 핸드가 표시됩니다.', hideLabel: '푸는 동안 히트맵·표 가리기', active: false, hide: true, q: null, pick: null },
 };
-const posLabel = r => (r.hu ? '헤즈업 BTN/SB' : `${r.name} (뒤에 ${r.k}명${r.six !== '–' ? ` · 6인 ${r.six}` : ''})`);
 
+/* ---- game A settings: question types, table size and seat (random or fixed) ---- */
+const QA_TYPES = [['a1', 'A1 오픈 % 맞히기'], ['a2open', 'A2 오픈할까?'], ['a2vs', 'A2 오픈 상대 (폴드·콜·3벳)']];
+const SEAT_ORDER = ['UTG', 'UTG+1', 'UTG+2', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB', 'BTN/SB'];
+const QA_DEFAULT = () => ({ types: { a1: true, a2open: true, a2vs: true }, players: 'rand', pos: 'rand' });
+S.quizACfg = QA_DEFAULT();
+const seatDesc = (N, i) => (N === 2 ? (i === 0 ? '헤즈업 BTN/SB' : '헤즈업 BB') : `${N}명 테이블 · ${LABELS[N][i]} (뒤에 ${N - 1 - i}명)`);
+const rowIdOf = (N, k) => (N === 2 && k === 1 ? 'hu' : 'k' + k);
+const sameAs9 = (N, k) => (N !== 9 && RFI_SEAT[k] && RFI_SEAT[k] !== 'SB' ? ` · 9인 기준 ${RFI_SEAT[k]}과 같은 레인지` : '');
+
+// every (table size, seat, type) the settings allow: opens need someone behind (not the BB), defending needs an opener in front
+function quizACombos() {
+  const cfg = S.quizACfg, types = QA_TYPES.map(t => t[0]).filter(t => cfg.types[t]), out = [];
+  const Ns = cfg.players !== 'rand' ? [+cfg.players] : [2, 3, 4, 5, 6, 7, 8, 9];
+  for (const N of Ns) LABELS[N].forEach((lab, i) => {
+    if (cfg.pos !== 'rand' && lab !== cfg.pos) return;
+    for (const t of types) if (t === 'a2vs' ? i >= 1 : N - 1 - i >= 1) out.push([N, i, t]);
+  });
+  return out;
+}
 function genQuizA() {
-  const r = pick(POS_ROWS), w = rowChart(r), s = ROW_STATS[POS_ROWS.indexOf(r)];
-  if (Math.random() < 0.65) { // is this hand an open from this seat?
+  const combos = quizACombos();
+  if (!combos.length) return null;
+  const t = pick([...new Set(combos.map(c => c[2]))]); // question type first, so each enabled type shows up evenly
+  const [N, i] = pick(combos.filter(c => c[2] === t));
+  const k = N - 1 - i, seat = seatDesc(N, i), seatName = N === 2 ? (i === 0 ? 'BTN/SB' : 'BB') : LABELS[N][i];
+  if (t === 'a2vs') return genQuizAvs(N, i, seat);
+  const w = rfiOf({ N }, k), sw = rangePct(w), core = rangePct(w.map(x => (x >= 1 ? 1 : 0))), all = rangePct(w.map(x => (x > 0 ? 1 : 0)));
+  const reveal = h => () => { apxSel = rowIdOf(N, k); apxMe = h; renderPosTable(); };
+  if (t === 'a2open') { // is this hand an open from this seat?
     // draw the answer first (open / borderline / fold) so the three answers stay balanced; folds come from plausible hands
     const cats = [HANDS.filter(h => w[h] >= 1), HANDS.filter(h => w[h] > 0 && w[h] < 1), HANDS.filter(h => !w[h] && HAND_PCT[h] <= 75)];
     if (!cats[2].length) cats[2] = HANDS.filter(h => !w[h]);
     const roll = Math.random(); let c = roll < 0.42 ? 0 : roll < 0.65 ? 1 : 2; if (!cats[c].length) c = 0;
     const h = pick(cats[c]), idx = w[h] >= 1 ? 0 : w[h] > 0 ? 1 : 2, ans = ['오픈', '경계(혼합)', '폴드'];
     return {
-      big: handName(h), sub: posLabel(r), text: `앞사람이 모두 폴드했을 때 이 자리에서 ${handName(h)} 핸드를 오픈할까요?`,
-      options: ans, idx, accept: i => i === idx,
-      detail: () => `${posLabel(r)}의 ${handName(h)} → <b>${ans[idx]}</b> · 이 자리 오픈 약 ${fpct(s.w)} · 핸드 순위 상위 ${fpct(HAND_PCT[h])}`,
-      reveal: () => { apxSel = r.id; apxMe = h; renderPosTable(); },
+      big: handName(h), sub: `${seat} · 앞사람 모두 폴드`, text: `이 자리에서 ${handName(h)} 핸드를 오픈할까요?`,
+      options: ans, idx, accept: x => x === idx,
+      detail: () => `${seat}의 ${handName(h)} → <b>${ans[idx]}</b> · 이 자리 오픈 약 ${fpct(sw)} · 핸드 순위 상위 ${fpct(HAND_PCT[h])}`,
+      reveal: reveal(h),
     };
   }
-  const t = { v: s.w, buckets: POS_BUCKETS, idx: bucketIdx(POS_BUCKETS, s.w) };
+  const tb = { v: sw, buckets: POS_BUCKETS, idx: bucketIdx(POS_BUCKETS, sw) };
   return {
-    big: r.hu ? '헤즈업 BTN/SB' : r.name, sub: posLabel(r), text: '이 자리의 딥스택 오픈 레인지는 약 몇 %일까요?',
-    options: POS_BUCKETS.map(b => b[1]), idx: t.idx, accept: i => quizAccept(t, i), near: i => i !== t.idx && quizAccept(t, i),
-    detail: () => `가중 <b>${fpct(s.w)}</b> (코어 ${fpct(s.core)}, 경계 포함 ${fpct(s.all)})`,
-    reveal: () => { apxSel = r.id; apxMe = null; renderPosTable(); },
+    big: seatName, sub: seat, text: '앞사람이 모두 폴드했을 때, 이 자리의 딥스택 오픈 레인지는 약 몇 %일까요?',
+    options: POS_BUCKETS.map(b => b[1]), idx: tb.idx, accept: x => quizAccept(tb, x), near: x => x !== tb.idx && quizAccept(tb, x),
+    detail: () => `가중 <b>${fpct(sw)}</b> (코어 ${fpct(core)}, 경계 포함 ${fpct(all)})${sameAs9(N, k)}`,
+    reveal: reveal(null),
   };
+}
+// A2 facing an open: fold / call / 3-bet from the 100BB defence charts (mixed hands accept both answers)
+function defendVerdicts(CH, h) {
+  const t3 = CH.r3[h], tc = CH.call[h], v = ['bad', 'bad', 'bad']; // [fold, call, 3-bet]
+  if (t3 >= 1) { v[2] = 'best'; if (tc > 0) v[1] = 'ok'; }
+  else if (t3 > 0 && tc >= 1) { v[2] = 'best'; v[1] = 'best'; }
+  else if (t3 > 0 && tc > 0) { v[2] = 'best'; v[1] = 'best'; v[0] = 'ok'; }
+  else if (t3 > 0) { v[2] = 'best'; v[0] = 'ok'; }
+  else if (tc >= 1) v[1] = 'best';
+  else if (tc > 0) { v[1] = 'best'; v[0] = 'ok'; }
+  else v[0] = 'best';
+  return v;
+}
+function genQuizAvs(N, i, seat) {
+  const oi = rint(0, i - 1), kh = N - 1 - i, ko = N - 1 - oi;
+  const role = kh === 0 ? 'BB' : kh === 1 ? 'SB' : 'IP';
+  const CH = DEF[role][N === 2 ? 'HU' : GROUP_OF_K(ko)];
+  const opener = N === 2 ? 'BTN/SB' : LABELS[N][oi], ans = ['폴드', '콜', '3벳'];
+  // draw the answer first (3-bet / call / fold); folds come from plausible hands
+  const cats = [HANDS.filter(h => CH.r3[h] > 0), HANDS.filter(h => !CH.r3[h] && CH.call[h] > 0), HANDS.filter(h => !CH.r3[h] && !CH.call[h] && HAND_PCT[h] <= 70)];
+  if (!cats[2].length) cats[2] = HANDS.filter(h => !CH.r3[h] && !CH.call[h]);
+  const roll = Math.random(); let c = roll < 0.3 ? 0 : roll < 0.65 ? 1 : 2; if (!cats[c].length) c = cats[0].length ? 0 : 2;
+  const h = pick(cats[c]), v = defendVerdicts(CH, h);
+  const best = [0, 1, 2].filter(x => v[x] === 'best'), okk = [0, 1, 2].filter(x => v[x] === 'ok');
+  return {
+    big: handName(h), sub: `${seat} · ${opener} 오픈, 사이는 모두 폴드`, text: `${opener}의 오픈 레이즈에 ${handName(h)} 핸드로 어떻게 할까요?`,
+    options: ans, idx: best[0], bestSet: best, accept: x => v[x] !== 'bad', near: x => v[x] === 'ok', nearText: '혼합(경계) 핸드라 이 선택도 정답 처리',
+    detail: () => `${seat === '헤즈업 BB' ? 'BB' : LABELS[N][i]} vs ${opener} 오픈: ${handName(h)} → <b>${best.map(x => ans[x]).join(' / ')}</b>${okk.length ? ` (허용: ${okk.map(x => ans[x]).join(' / ')})` : ''} · 3벳 레인지 약 ${fpct(rangePct(CH.r3))}, 콜 레인지 약 ${fpct(rangePct(CH.call))}`,
+    extra: () => defendChartHTML(CH, h, `${seat === '헤즈업 BB' ? 'BB' : LABELS[N][i]} vs ${opener} 오픈 · 디펜스 차트 (100BB 이론)`),
+    reveal: () => {},
+  };
+}
+function defendChartHTML(CH, me, title) {
+  const cls = h => { const v = defendVerdicts(CH, h); return v[2] === 'best' && v[1] === 'best' ? 'mix-rc' : v[2] === 'best' ? (v[0] === 'ok' ? 'raise-mix' : 'raise') : v[1] === 'best' ? (v[0] === 'ok' ? 'call-mix' : 'call') : 'fold'; };
+  const cells = HANDS.map(h => `<div class="cell ${cls(h)}${h === me ? ' me' : ''}" title="${handName(h)}">${handName(h)}</div>`).join('');
+  return `<div class="chart quiz-chart"><div class="chart-title">${esc(title)}</div><div class="chart-scroll"><div class="grid13" role="img" aria-label="${esc(title)}">${cells}</div></div>
+    <div class="legend"><span><i style="background:var(--c-raise)"></i>3벳</span><span><i style="background:var(--c-raise-mix)"></i>3벳(경계)</span><span><i style="background:linear-gradient(135deg,var(--c-raise) 50%,var(--c-call) 50%)"></i>3벳/콜 혼합</span><span><i style="background:var(--c-call)"></i>콜</span><span><i style="background:var(--c-call-mix)"></i>콜(경계)</span><span><i style="background:var(--c-fold)"></i>폴드</span><span><i style="outline:2px solid var(--accent);outline-offset:-2px;background:transparent"></i>문제 핸드</span></div></div>`;
+}
+function quizCfgHTML() {
+  const cfg = S.quizACfg;
+  const nOpts = ['rand', '9', '8', '7', '6', '5', '4', '3', '2'].map(v => `<option value="${v}"${cfg.players === v ? ' selected' : ''}>${v === 'rand' ? '랜덤 (2–9명)' : v === '2' ? '2명 (헤즈업)' : v + '명'}</option>`).join('');
+  const seats = cfg.players === 'rand' ? SEAT_ORDER : LABELS[+cfg.players];
+  const pOpts = ['rand', ...seats].map(v => `<option value="${v}"${cfg.pos === v ? ' selected' : ''}>${v === 'rand' ? '랜덤' : v}</option>`).join('');
+  const tg = QA_TYPES.map(([t, lab]) => `<button type="button" class="tog" data-qt="${t}" aria-pressed="${cfg.types[t] ? 'true' : 'false'}">${lab}</button>`).join('');
+  return `<div class="quiz-cfg"><div class="chips-toggle" role="group" aria-label="문제 유형">${tg}</div>
+    <label class="ctl" for="qaPlayers">인원 <select id="qaPlayers">${nOpts}</select></label>
+    <label class="ctl" for="qaPos">포지션 <select id="qaPos">${pOpts}</select></label></div>`;
+}
+function bindQuizCfg() {
+  const cfg = S.quizACfg, refresh = () => { save(); if (QUIZ.A.active) nextQuiz('A'); else renderQuiz('A'); };
+  $('quizA').querySelectorAll('.quiz-cfg .tog').forEach(b => b.addEventListener('click', () => {
+    const t = b.dataset.qt, on = !cfg.types[t];
+    if (!on && Object.values(cfg.types).filter(Boolean).length <= 1) return; // keep at least one type
+    cfg.types[t] = on; refresh();
+  }));
+  $('qaPlayers').addEventListener('change', e => {
+    cfg.players = e.target.value;
+    if (cfg.players !== 'rand' && cfg.pos !== 'rand' && !LABELS[+cfg.players].includes(cfg.pos)) cfg.pos = 'rand';
+    refresh();
+  });
+  $('qaPos').addEventListener('change', e => { cfg.pos = e.target.value; refresh(); });
 }
 function genQuizB() {
   const pool = Math.random() < 0.75 ? HANDS.filter(h => HAND_PCT[h] <= 65) : HANDS;
@@ -1842,18 +1931,25 @@ function renderQuiz(id) {
   const Q = QUIZ[id], tally = S[Q.key], el = $(Q.el);
   const score = `${tally.n}문제 · 정답 ${tally.ok} (${tally.n ? Math.round(tally.ok / tally.n * 100) : 0}%)`;
   const hideCtl = `<label class="qhide" for="${Q.el}Hide"><input type="checkbox" id="${Q.el}Hide"${Q.hide ? ' checked' : ''}> ${Q.hideLabel}</label>`;
+  const cfgRow = id === 'A' ? quizCfgHTML() : '';
   if (!Q.active) {
-    el.innerHTML = `<div class="quiz-top"><b>${Q.name}</b><span class="hint">${score}</span></div><p class="hint">${Q.desc}</p>
+    el.innerHTML = `<div class="quiz-top"><b>${Q.name}</b><span class="hint">${score}</span></div>${cfgRow}<p class="hint">${Q.desc}</p>
       <div class="quiz-ctrl"><button type="button" class="quiz-next" id="${Q.el}Start">게임 시작</button>${hideCtl}</div>`;
     $(`${Q.el}Start`).addEventListener('click', () => { Q.active = true; nextQuiz(id); });
+  } else if (!Q.q) { // the chosen table size / seat / types leave nothing to ask
+    el.innerHTML = `<div class="quiz-top"><b>${Q.name}</b><span class="hint">${score}</span></div>${cfgRow}
+      <p class="quiz-fb">선택한 인원·포지션으로 낼 수 있는 문제가 없습니다. BB는 첫 진입 자리가 아니라 A1·A2 오픈 문제가 없고, 맨 앞자리(UTG 등)는 앞에 오픈이 없어 '오픈 상대' 문제가 없습니다. 문제 유형이나 포지션을 바꿔 주세요.</p>
+      <div class="quiz-ctrl"><button type="button" class="linkbtn" id="${Q.el}Stop">그만하기</button>${hideCtl}</div>`;
+    $(`${Q.el}Stop`).addEventListener('click', () => { Q.active = false; Q.pick = null; QUIZ_CLEAR[id](); renderQuiz(id); });
   } else {
     const q = Q.q, answered = Q.pick != null;
+    const isBest = i => (q.bestSet ? q.bestSet.includes(i) : i === q.idx);
     const opts = q.options.map((lab, i) => {
-      const cls = !answered ? '' : i === q.idx || (i === Q.pick && q.accept(i)) ? 'right' : i === Q.pick ? 'wrong' : '';
+      const cls = !answered ? '' : isBest(i) || (i === Q.pick && q.accept(i)) ? 'right' : i === Q.pick ? 'wrong' : '';
       return `<button type="button" class="qbtn ${cls}" data-i="${i}"${answered ? ' disabled' : ''}>${lab}</button>`;
     }).join('');
-    const fb = answered ? `<div class="quiz-fb">${q.accept(Q.pick) ? '<b style="color:var(--best)">정답</b>' : '<b style="color:var(--bad)">오답</b>'} · ${q.detail()}${q.near && q.near(Q.pick) ? ' · 경계값이라 인접 구간도 정답 처리' : ''}</div>` : '';
-    el.innerHTML = `<div class="quiz-top"><b>${Q.name}</b><span class="hint">${score}</span></div>
+    const fb = answered ? `<div class="quiz-fb">${q.accept(Q.pick) ? '<b style="color:var(--best)">정답</b>' : '<b style="color:var(--bad)">오답</b>'} · ${q.detail()}${q.near && q.near(Q.pick) ? ' · ' + (q.nearText || '경계값이라 인접 구간도 정답 처리') : ''}</div>${q.extra ? q.extra() : ''}` : '';
+    el.innerHTML = `<div class="quiz-top"><b>${Q.name}</b><span class="hint">${score}</span></div>${cfgRow}
       <div class="quiz-big"><span class="quiz-hand">${q.big}</span><span class="hint">${q.sub}</span></div>
       <div class="quiz-q">${q.text}</div><div class="quiz-opts">${opts}</div>${fb}
       <div class="quiz-ctrl">${answered ? `<button type="button" class="quiz-next" id="${Q.el}Next">다음 문제</button>` : ''}<button type="button" class="linkbtn" id="${Q.el}Stop">그만하기</button>${hideCtl}</div>`;
@@ -1866,6 +1962,7 @@ function renderQuiz(id) {
     $(`${Q.el}Stop`).addEventListener('click', () => { Q.active = false; Q.q = null; Q.pick = null; QUIZ_CLEAR[id](); renderQuiz(id); });
   }
   $(`${Q.el}Hide`).addEventListener('change', e => { Q.hide = e.target.checked; quizHiding(id); });
+  if (id === 'A') bindQuizCfg();
   quizHiding(id);
 }
 function renderAppendix() { renderPosTable(); renderHandPct(null); renderTopTable(); renderQuiz('A'); renderQuiz('B'); }
