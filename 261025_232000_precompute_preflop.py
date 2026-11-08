@@ -4,6 +4,7 @@ Preflop data precompute for the Hold'em preflop drill.
 
   python 261025_232000_precompute_preflop.py equity   # 169x169 all-in equity matrix (Monte Carlo, eval7)
   python 261025_232000_precompute_preflop.py nash     # chipEV Nash push/fold charts (BB ante)
+  python 261025_232000_precompute_preflop.py multiway # all-in equity vs 2..8 random hands (adds to the data JSON)
   python 261025_232000_precompute_preflop.py inject <html>  # embed data JSON into the HTML file
   python 261025_232000_precompute_preflop.py pages <html> [index.html]  # standalone page for GitHub Pages
 
@@ -20,6 +21,7 @@ DATA_JSON = os.path.join(HERE, '261025_232000_preflop_data.json')
 RANKS = 'AKQJT98765432'
 SUITS = 'shdc'
 SAMPLES_PER_MATCHUP = 12000
+SAMPLES_MULTIWAY = 20000
 
 
 def hand_name(h):
@@ -207,6 +209,55 @@ def encode_eq(E):
     return ''.join(s)
 
 
+# ---------------------------------------------------------------- multiway equity
+def multiway_row(h):
+    """All-in equity of class h against n = 2..8 random hands (ties split)."""
+    import eval7
+    rnd = random.Random(7000 + h)
+    rep = class_combos(h)[0]
+    hero = [eval7.Card(rep[0]), eval7.Card(rep[1])]
+    rest = [eval7.Card(r + s) for r in RANKS for s in SUITS if (r + s) not in rep]
+    ev = eval7.evaluate
+    out = {}
+    for n in range(2, 9):
+        share = 0.0
+        for _ in range(SAMPLES_MULTIWAY):
+            cards = rnd.sample(rest, 2 * n + 5)
+            board = cards[2 * n:]
+            hv = ev(hero + board)
+            opp = [ev(cards[2 * j:2 * j + 2] + board) for j in range(n)]
+            m = max(opp)
+            if hv > m:
+                share += 1.0
+            elif hv == m:
+                share += 1.0 / (1 + opp.count(m))
+        out[n] = share / SAMPLES_MULTIWAY
+    return h, out
+
+
+def run_multiway():
+    from multiprocessing import Pool
+    t = time.time()
+    res = {n: [0.0] * 169 for n in range(2, 9)}
+    with Pool(8) as pool:
+        for k, (h, row) in enumerate(pool.imap_unordered(multiway_row, range(169))):
+            for n, v in row.items():
+                res[n][h] = v
+            if k % 40 == 0:
+                print(f'  rows {k + 1}/169  {time.time() - t:.0f}s', flush=True)
+    names = [hand_name(h) for h in range(169)]
+    for nm in ('AA', 'KK', '22', 'AKs', 'JTs', '72o'):
+        h = names.index(nm)
+        print(f'  {nm}: ' + ' '.join(f'{n}:{res[n][h]:.3f}' for n in range(2, 9)))
+    with open(DATA_JSON, encoding='utf-8') as f:
+        data = json.load(f)
+    data['multiway'] = {str(n): [round(v, 4) for v in res[n]] for n in range(2, 9)}
+    data['meta']['multiwaySamples'] = SAMPLES_MULTIWAY
+    with open(DATA_JSON, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, separators=(',', ':'))
+    print(f'multiway done in {time.time() - t:.0f}s; wrote {DATA_JSON}')
+
+
 # ---------------------------------------------------------------- inject
 def run_inject(html_path):
     with open(DATA_JSON, encoding='utf-8') as f:
@@ -253,6 +304,8 @@ if __name__ == '__main__':
         run_equity()
     elif cmd == 'nash':
         run_nash()
+    elif cmd == 'multiway':
+        run_multiway()
     elif cmd == 'inject':
         run_inject(sys.argv[2])
     elif cmd == 'pages':
